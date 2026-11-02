@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { daysLeft, getPass, passStatus, restore, type PassStatus } from "@/lib/client/pass";
 import { PASSES } from "@/lib/plans";
 import { api, postJson } from "@/lib/client/http";
+import { SUPPORT_EMAIL } from "@/lib/contact";
 
 /** Shows the active pass (with its restore code) or lets someone restore a pass bought elsewhere. */
 export default function PassManager() {
@@ -81,6 +82,9 @@ export default function PassManager() {
         </form>
       )}
       {msg && <p className="mt-2">{msg}</p>}
+      <p className="mt-3">
+        Payment problem? <a href={`mailto:${SUPPORT_EMAIL}`} className="underline underline-offset-2 hover:text-ink">{SUPPORT_EMAIL}</a>
+      </p>
     </div>
   );
 }

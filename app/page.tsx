@@ -1,5 +1,5 @@
 import Analyzer from "@/components/Analyzer";
-import Stats from "@/components/Stats";
+import CheckedCounter from "@/components/CheckedCounter";
 
 export default function Home() {
   return (
@@ -12,7 +12,7 @@ export default function Home() {
         <p className="mx-auto mt-4 max-w-md text-[15px] text-muted text-pretty">
           Upload your CV. See what employers want, what you already have, what you&rsquo;re missing, and exactly what to do next.
         </p>
-        <Stats />
+        <CheckedCounter />
       </div>
       <Analyzer />
     </div>

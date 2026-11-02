@@ -8,6 +8,7 @@ import { track } from "@/lib/client/analytics";
 import { canRecheck, daysLeft, getPass, passStatus, type PassStatus } from "@/lib/client/pass";
 import { recheckWithPass } from "@/lib/client/recheck";
 import { PASSES } from "@/lib/plans";
+import { SUPPORT_EMAIL } from "@/lib/contact";
 import { Spinner } from "./Analyzer";
 
 /** Landing page after Bachs checkout: confirms the payment with the server, then unlocks. */
@@ -111,6 +112,9 @@ function Box({ title, children }: { title: string; children: React.ReactNode }) 
     <div className="card p-6 text-center">
       <h1 className="text-lg font-semibold">{title}</h1>
       <p className="mt-2 text-sm text-muted">{children}</p>
+      <p className="mt-4 text-xs text-muted">
+        Need help? <a href={`mailto:${SUPPORT_EMAIL}`} className="underline">{SUPPORT_EMAIL}</a>
+      </p>
     </div>
   );
 }

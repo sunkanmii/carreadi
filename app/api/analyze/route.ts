@@ -5,6 +5,7 @@ import { careerById } from "@/lib/careers";
 import { getJob } from "@/lib/jobs";
 import { consumeQuota, json, rateLimit, readJson } from "@/lib/server/guard";
 import { consumePass, refundPassUse } from "@/lib/server/payments";
+import { bumpStat } from "@/lib/server/stats";
 
 export async function POST(req: Request) {
   const limited = await rateLimit(req);
@@ -57,6 +58,7 @@ export async function POST(req: Request) {
       location: input.location,
       remote: input.remote,
     });
+    await bumpStat("analyses");
     return json({
       // Free previews are trimmed here, on the server: locked gaps never reach the browser.
       analysis: paid ? analysis : toPreview(analysis),

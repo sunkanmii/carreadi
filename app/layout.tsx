@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Analytics from "@/components/Analytics";
 import PassBadge from "@/components/PassBadge";
+import { SUPPORT_EMAIL } from "@/lib/contact";
 import "./globals.css";
 
 const SITE = "https://carreadi.naijabukana.com";
@@ -59,6 +60,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <Link href="/plans" className="hover:text-ink">Pricing</Link>
           <Link href="/request" className="hover:text-ink">Request a company</Link>
           <Link href="/privacy" className="hover:text-ink">Privacy &amp; data</Link>
+          <a href={`mailto:${SUPPORT_EMAIL}`} className="hover:text-ink">Contact</a>
         </footer>
       </body>
     </html>

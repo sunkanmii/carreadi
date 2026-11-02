@@ -1,0 +1,23 @@
+"use client";
+
+import { motion } from "motion/react";
+import { useEffect, useState } from "react";
+
+/** Shown only once the real count is big enough to mean something; small numbers would hurt trust. */
+const SHOW_FROM = 500;
+
+export default function CheckedCounter() {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    fetch("/api/stats")
+      .then((r) => r.json() as Promise<{ cvsChecked?: number }>)
+      .then((d) => setN(d.cvsChecked ?? 0))
+      .catch(() => {});
+  }, []);
+  if (n < SHOW_FROM) return null;
+  return (
+    <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="mt-4 text-sm text-muted">
+      <span className="font-semibold text-ink">{n.toLocaleString()}</span> CVs checked so far
+    </motion.p>
+  );
+}

@@ -1,5 +1,6 @@
 import AnalyticsToggle from "@/components/AnalyticsToggle";
 import DeleteData from "@/components/DeleteData";
+import { SUPPORT_EMAIL } from "@/lib/contact";
 
 export const metadata = { title: "Privacy & data — Carreadi" };
 
@@ -33,6 +34,10 @@ export default function Page() {
           name are never sent to analytics.
         </li>
       </ul>
+      <p className="mt-6 text-sm text-muted">
+        Questions, payment problems or data requests:{" "}
+        <a href={`mailto:${SUPPORT_EMAIL}`} className="font-medium text-ink underline">{SUPPORT_EMAIL}</a>
+      </p>
       <div className="mt-8 space-y-6">
         <AnalyticsToggle />
         <DeleteData />

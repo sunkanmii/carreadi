@@ -85,7 +85,7 @@ Pricing: 1 free check a week. Day pass $2, week pass $5 (₦2,000 / ₦5,000 in 
 
 I'd love your honest feedback: what would make this the first thing you open before applying?
 
-**Gallery (in order):** 1. `og.png` · 2. home with "2,900+ live jobs" · 3. matched jobs with skill chips · 4. results with a quoted "Shown" item · 5. animated roadmap · 6. pricing
+**Gallery (in order):** 1. `og.png` · 2. home page · 3. matched jobs with skill chips · 4. results with a quoted "Shown" item · 5. animated roadmap · 6. pricing
 **Thumbnail:** `brand/logo-mark-1024.png`
 
 ---
