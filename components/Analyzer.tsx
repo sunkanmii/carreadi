@@ -80,7 +80,7 @@ export default function Analyzer() {
   const jobReady = mode === "paste" ? jobText.trim().length >= 100 : !!picked;
   const canSubmit = resumeReady && jobReady && consent && !busy;
 
-  async function submit() {
+  async function submit(retried = false) {
     setBusy(true);
     setError("");
     try {
@@ -117,6 +117,18 @@ export default function Analyzer() {
       });
       router.push("/results");
     } catch (e) {
+      // The connection dropped (often a phone killing the request while the user is in another app).
+      // Run it again once they're back: the same résumé and job don't use up another free check.
+      if (e instanceof TypeError && !retried) {
+        const again = () => void submit(true);
+        if (document.visibilityState === "visible") again();
+        else document.addEventListener("visibilitychange", function back() {
+          if (document.visibilityState !== "visible") return;
+          document.removeEventListener("visibilitychange", back);
+          again();
+        });
+        return;
+      }
       track("analysis_failed", { reason: e instanceof Error ? e.message.slice(0, 80) : "unknown" });
       setError(e instanceof Error ? e.message : "Analysis failed.");
       setBusy(false);
@@ -251,7 +263,7 @@ export default function Analyzer() {
             </span>
           </label>
 
-          <button className="btn w-full" disabled={!canSubmit} onClick={submit}>
+          <button className="btn w-full" disabled={!canSubmit} onClick={() => submit()}>
             {busy && <Spinner />}
             {busy ? "Analyzing — up to a minute" : "Check my career readiness"}
           </button>

@@ -7,6 +7,11 @@ import { consumeQuota, json, rateLimit, readJson } from "@/lib/server/guard";
 import { consumePass, refundPassUse } from "@/lib/server/payments";
 import { bumpStat } from "@/lib/server/stats";
 
+async function sha256(s: string) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 export async function POST(req: Request) {
   const limited = await rateLimit(req);
   if (limited) return limited;
@@ -38,7 +43,8 @@ export async function POST(req: Request) {
     }
   }
   const paid = passLeft !== null;
-  const quota = paid ? null : await consumeQuota(req);
+  const quota = paid ? null : await consumeQuota(req, await sha256(`${input.resumeText}
+${input.jobId ?? jobText}`));
   if (quota && !quota.ok)
     return json(
       {

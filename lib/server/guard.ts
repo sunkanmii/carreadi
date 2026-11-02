@@ -132,22 +132,30 @@ export interface Quota {
   refund: () => Promise<void>;
 }
 
+/** Re-runs of the same résumé against the same job, per week, that don't count again. */
+export const FREE_RERUNS = 5;
+
 /**
  * Counts one AI analysis against the free daily and weekly quotas. Stores only salted hashes
  * of the IP + period and counters — never résumé content. Rows older than 8 days are pruned.
+ *
+ * `same` identifies what is being analysed (résumé + job). Running the same thing again in the
+ * same week is free: a phone that drops the request when the user switches apps mid-analysis
+ * would otherwise lose the result and the free check. Only its hash is stored.
  */
-export async function consumeQuota(req: Request): Promise<Quota> {
+export async function consumeQuota(req: Request, same = ""): Promise<Quota> {
   const ip = clientIp(req);
   const day = new Date().toISOString().slice(0, 10);
   const week = weekStart();
   const kDay = await hashKey(ip, day);
   const kWeek = await hashKey(ip, `week:${week}`);
+  const kRun = await hashKey(ip, `run:${week}:${same}`);
   const db = bindings.DB;
   // Gives the analysis back when the AI fails or a limit blocks it, so users aren't charged for nothing.
   const refund = async () => {
     try {
-      if (db) await db.prepare("UPDATE usage SET n = n - 1 WHERE k IN (?, ?) AND n > 0").bind(kDay, kWeek).run();
-      for (const k of [kDay, kWeek]) {
+      if (db) await db.prepare("UPDATE usage SET n = n - 1 WHERE k IN (?, ?, ?) AND n > 0").bind(kDay, kWeek, kRun).run();
+      for (const k of [kDay, kWeek, kRun]) {
         const m = memory.get(`q:${k}`);
         if (m && m.n > 0) m.n--;
       }
@@ -170,13 +178,30 @@ export async function consumeQuota(req: Request): Promise<Quota> {
       tableReady = true;
     }
     const upsert = "INSERT INTO usage (k, day, n) VALUES (?, ?, 1) ON CONFLICT(k) DO UPDATE SET n = n + 1 RETURNING n";
-    const [d, w] = await db.batch<{ n: number }>([db.prepare(upsert).bind(kDay, day), db.prepare(upsert).bind(kWeek, week)]);
+    // Already counted this week for the same résumé and job: run it again without charging.
+    const run = await db.prepare("SELECT n FROM usage WHERE k = ?").bind(kRun).first<{ n: number }>();
+    if (same && run && run.n > 0 && run.n <= FREE_RERUNS) {
+      await db.prepare(upsert).bind(kRun, day).run();
+      const rerunRefund = async () => {
+        try {
+          await db.prepare("UPDATE usage SET n = n - 1 WHERE k = ? AND n > 0").bind(kRun).run();
+        } catch {}
+      };
+      return { ok: true, limit: null, remaining: 0, refund: rerunRefund };
+    }
+    const [d, w] = await db.batch<{ n: number }>([db.prepare(upsert).bind(kDay, day), db.prepare(upsert).bind(kWeek, week), db.prepare(upsert).bind(kRun, day)]);
     const q = result(d.results[0]?.n ?? 1, w.results[0]?.n ?? 1);
     if (!q.ok) await refund(); // a blocked attempt shouldn't eat into the other limit
     return q;
   } catch {
+    const run = memory.get(`q:${kRun}`);
+    if (same && run && run.n > 0 && run.n <= FREE_RERUNS && Date.now() - run.at < 7 * 864e5) {
+      run.n++;
+      return { ok: true, limit: null, remaining: 0, refund: async () => void (run.n > 0 && run.n--) };
+    }
     memoryLimit(`q:${kDay}`, FREE_ANALYSES_PER_DAY, 864e5);
     memoryLimit(`q:${kWeek}`, FREE_WEEKLY_LIMIT, 7 * 864e5);
+    memoryLimit(`q:${kRun}`, Infinity, 7 * 864e5);
     const q = result(memory.get(`q:${kDay}`)?.n ?? 1, memory.get(`q:${kWeek}`)?.n ?? 1);
     if (!q.ok) await refund();
     return q;

@@ -47,6 +47,17 @@ describe("consumeQuota", () => {
     expect((await consumeQuota(req(ip))).ok).toBe(true);
   });
 
+  it("lets the same résumé and job run again (a dropped request), but not a different one", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-03T09:00:00Z"));
+    const ip = "192.0.2.44";
+    expect((await consumeQuota(req(ip), "cv+job-a")).ok).toBe(true);
+    expect((await consumeQuota(req(ip), "cv+job-a")).ok).toBe(true); // came back from another app
+    expect(await consumeQuota(req(ip), "cv+job-b")).toMatchObject({ ok: false });
+    for (let i = 0; i < 4; i++) await consumeQuota(req(ip), "cv+job-a");
+    expect(await consumeQuota(req(ip), "cv+job-a")).toMatchObject({ ok: false }); // re-runs are capped
+  });
+
   it("refund gives an analysis back", async () => {
     const q = await consumeQuota(req("198.51.100.1"));
     expect(q.ok).toBe(true);
