@@ -31,3 +31,5 @@ video/renders/
 video/.hyperframes/
 video/node_modules/
 AGENTS.md
+video/.thumbnails/
+video/.waveform-cache/
