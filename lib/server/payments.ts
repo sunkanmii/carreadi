@@ -235,7 +235,7 @@ export async function handleWebhook(req: Request): Promise<Response> {
   const raw = await req.text();
   if (raw.length > 65_536) return Response.json({ error: "too_large" }, { status: 413 });
   if (!(await validSignature(req.headers, raw, e.BACHS_WEBHOOK_SECRET))) return Response.json({ error: "signature" }, { status: 401 });
-  let event: { id?: string; type?: string; organization_id?: string; data?: { charge_id?: string } };
+  let event: { id?: string; type?: string; organization_id?: string; data?: { charge_id?: string; checkout_id?: string; reference?: string } };
   try {
     event = JSON.parse(raw);
   } catch {
@@ -255,6 +255,16 @@ export async function handleWebhook(req: Request): Promise<Response> {
       if (fullRefund(charge.status)) await reverse(o);
       else if (event.type === "collection.succeeded") await settle(o, { ...charge, charge_id: charge.charge_id });
     }
+  }
+  // Checkout finished or expired: look the session up with Bachs and record its real outcome.
+  // An expired checkout becomes "failed", so an abandoned order never stays pending forever.
+  if (event.type === "checkout.completed" || event.type === "checkout.expired") {
+    const ref = validReference(event.data?.reference) ? event.data!.reference! : null;
+    const byCheckout = providerId(event.data?.checkout_id)
+      ? await d.prepare("SELECT * FROM orders WHERE checkout_id = ?").bind(event.data!.checkout_id).first<Order>()
+      : null;
+    const o = byCheckout ?? (ref ? await byReference(ref) : null);
+    if (o) await reconcile(o);
   }
   // Effects are idempotent, so recording the event last is safe if we crash before this line.
   await d.prepare("INSERT OR IGNORE INTO payment_events (id, type, created_at) VALUES (?, ?, ?)").bind(id, event.type, Date.now()).run();
