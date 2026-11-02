@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#fbfaf8"/>
+  <circle cx="1080" cy="90" r="260" fill="#e6f0ec"/>
+  <path d="M760 560 H880 V450 H990 V340 H1100 V230" fill="none" stroke="#1f5f4a" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+  <circle cx="1100" cy="160" r="30" fill="#f2c14e"/>
+  <g transform="translate(80 80)">
+    <rect width="64" height="64" rx="15" fill="#1f5f4a"/>
+    <path d="M14 47 H26 V36 H37 V25" fill="none" stroke="#ffffff" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="46" cy="18" r="6.5" fill="#f2c14e"/>
+  </g>
+  <text x="162" y="126" font-family="Inter, 'Segoe UI', Arial, sans-serif" font-size="40" font-weight="700" letter-spacing="-1" fill="#16181d">carreadi</text>
+  <text font-family="Inter, 'Segoe UI', Arial, sans-serif" font-size="68" font-weight="800" letter-spacing="-2" fill="#16181d">
+    <tspan x="80" y="290">Your next job isn’t</tspan>
+    <tspan x="80" y="370">a guessing game.</tspan>
+  </text>
+  <text font-family="Inter, 'Segoe UI', Arial, sans-serif" font-size="30" fill="#6b6f78">
+    <tspan x="80" y="450">See what employers want, what you’re missing,</tspan>
+    <tspan x="80" y="492">and exactly what to do next.</tspan>
+  </text>
+  <rect x="80" y="530" width="420" height="52" rx="26" fill="#16181d"/>
+  <text x="290" y="564" text-anchor="middle" font-family="Inter, 'Segoe UI', Arial, sans-serif" font-size="24" font-weight="600" fill="#ffffff">carreadi.naijabukana.com</text>
+</svg>

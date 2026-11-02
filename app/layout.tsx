@@ -4,9 +4,32 @@ import Analytics from "@/components/Analytics";
 import PassBadge from "@/components/PassBadge";
 import "./globals.css";
 
+const SITE = "https://carreadi.naijabukana.com";
+const DESCRIPTION = "Upload your résumé, match it to live jobs, and see exactly what employers want, what you're missing, and what to do next.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE),
   title: "Carreadi — career readiness",
-  description: "See what employers want, what you're missing, and what to do next.",
+  description: DESCRIPTION,
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }, { url: "/favicon-32.png", sizes: "32x32", type: "image/png" }],
+    apple: "/apple-touch-icon.png",
+  },
+  // Link previews on LinkedIn, X, WhatsApp, Slack…
+  openGraph: {
+    type: "website",
+    url: SITE,
+    siteName: "Carreadi",
+    title: "Your next job isn't a guessing game. — Carreadi",
+    description: DESCRIPTION,
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Carreadi: your next job isn't a guessing game." }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Your next job isn't a guessing game. — Carreadi",
+    description: DESCRIPTION,
+    images: ["/og.png"],
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -19,7 +42,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body className="flex min-h-dvh flex-col">
         <header className="mx-auto flex w-full max-w-3xl items-center justify-between px-5 py-5">
-          <Link href="/" className="text-[15px] font-semibold tracking-tight">
+          <Link href="/" className="flex items-center gap-2 text-[15px] font-semibold tracking-tight">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/icon.svg" alt="" width={24} height={24} className="rounded-md" />
             carreadi
           </Link>
           <nav className="flex items-center gap-5 text-sm text-muted">

@@ -76,3 +76,24 @@ describe("free preview", () => {
     expect(buildRoadmap(toPreview(a)).tasks.map((t) => t.requirement)).toEqual(["K8s", "AWS"]);
   });
 });
+
+describe("checkout return address", () => {
+  it("returns buyers to the address they started on, and only to our own addresses", async () => {
+    const { publicOrigin } = await import("@/lib/server/payments");
+    expect(publicOrigin(new Request("https://carreadi.naijabukana.com/api/checkout"))).toBe("https://carreadi.naijabukana.com");
+    expect(publicOrigin(new Request("https://carreadi.sunkanmifafowora.workers.dev/api/checkout"))).toBe("https://carreadi.sunkanmifafowora.workers.dev");
+    expect(publicOrigin(new Request("https://evil.example/api/checkout"))).toBeNull();
+    expect(publicOrigin(new Request("http://localhost:5173/api/checkout"))).toBeNull();
+  });
+});
+
+describe("currency by location", () => {
+  it("charges naira only in Nigeria, dollars everywhere else", async () => {
+    const { currencyFor } = await import("@/lib/server/geo");
+    const req = (country?: string) => new Request("https://x.test/", { headers: country ? { "cf-ipcountry": country } : {} });
+    expect(currencyFor(req("NG"))).toBe("NGN");
+    expect(currencyFor(req("GB"))).toBe("USD");
+    expect(currencyFor(req("US"))).toBe("USD");
+    expect(currencyFor(req())).toBe("USD");
+  });
+});

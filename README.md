@@ -31,22 +31,24 @@ npm run build
 ## Deploy to Cloudflare Workers
 
 ```bash
-npx cf auth login
-npx cf d1 create --name carreadi-db     # once; skip if it already exists
-npm run deploy                          # = vinext-cloudflare deploy (builds, then deploys)
+npx wrangler login
+npm run deploy        # = vinext-cloudflare deploy: builds, then deploys with Wrangler
 ```
 
-If the deploy asks for the D1 database id, copy it from `npx cf d1 list` into
-`cloudflare.config.ts` → `DB: bindings.d1({ name: "carreadi-db", id: "<id>" })`.
-The `usage` table is created automatically on first use — no migration needed.
+The database, KV namespace and other bindings are in `wrangler.jsonc`. The `usage` table is created automatically on first use — no migration needed.
 
-**Required secrets** (deploys refuse to run without them). Add each in the dashboard as type *Secret*
+**Secrets** (the app needs these). Add each in the dashboard as type *Secret*
 (Workers → carreadi → Settings → Variables and Secrets), and in `.dev.vars` for local dev:
 
 | Secret        | What it does                                                        |
 | ------------- | ------------------------------------------------------------------- |
 | `QUOTA_SALT`  | Long random string; stops usage hashes being reversed back to IPs   |
 | `ADMIN_TOKEN` | 16+ random characters; signs you in at `/admin` to review requests |
+| `BACHS_API_KEY` | `sk_sandbox_…` or `sk_live_…`, Payments → Write scope only |
+| `BACHS_WEBHOOK_SECRET` | Signing secret of the Carreadi webhook in Bachs |
+| `BACHS_ORGANIZATION_ID` | Your Bachs account id (`acct_…`) |
+
+Wrangler deploys keep existing secrets. (An earlier `cloudflare.config.ts` setup deleted undeclared ones; it has been replaced.)
 
 For CI, set `CLOUDFLARE_API_TOKEN` (template: "Edit Cloudflare Workers") instead of logging in.
 
@@ -58,10 +60,9 @@ For CI, set `CLOUDFLARE_API_TOKEN` (template: "Edit Cloudflare Workers") instead
    Cloudflare supplies the API token to the build, and the secrets already set on the Worker are kept.
 4. Every push to that branch runs the tests and deploys. Node version comes from `.node-version`.
 
-The custom domain (`carreadi.naijabukana.com`) is declared in `cloudflare.config.ts`. Change domains there, not in the
-dashboard: a domain added in the dashboard makes every deploy stop with a "configuration differs" error.
+Custom domains and secrets are managed in the Cloudflare dashboard. Deploys use Wrangler (`wrangler.jsonc`), which leaves them in place.
 
-### Bindings (`cloudflare.config.ts`)
+### Bindings (`wrangler.jsonc`)
 
 | Binding       | What it's for                                                         |
 | ------------- | --------------------------------------------------------------------- |

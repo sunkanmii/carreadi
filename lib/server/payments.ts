@@ -38,7 +38,9 @@ export interface Order {
   analyses_limit: number;
 }
 
-const DEFAULT_ORIGIN = "https://carreadi.sunkanmifafowora.workers.dev";
+// Every public address of the site. Checkout returns the buyer to the address they started on,
+// because the pass key is saved per address: returning elsewhere would hide a paid pass.
+export const SITE_ORIGINS = ["https://carreadi.naijabukana.com", "https://carreadi.sunkanmifafowora.workers.dev"];
 
 let ready = false;
 export async function ensurePaymentSchema(db: D1Database) {
@@ -110,12 +112,13 @@ async function db() {
 
 const byReference = async (reference: string) => (await db()).prepare("SELECT * FROM orders WHERE reference = ?").bind(reference).first<Order>();
 
-/** Bachs refuses private return URLs, so checkout only starts from the public site. */
-function publicOrigin(req: Request) {
-  const configured = (env as unknown as { PUBLIC_ORIGIN?: string } | undefined)?.PUBLIC_ORIGIN || DEFAULT_ORIGIN;
-  const host = new URL(req.url).hostname;
-  if (host === "localhost" || host.endsWith(".localhost") || /^(127\.|10\.|192\.168\.)/.test(host)) return null;
-  return configured;
+/**
+ * The address to send the buyer back to after paying: the one they started on, and only if it
+ * is one of ours (never trust the Host header blindly). Bachs also refuses local addresses.
+ */
+export function publicOrigin(req: Request) {
+  const here = new URL(req.url).origin;
+  return SITE_ORIGINS.includes(here) ? here : null;
 }
 
 export type CheckoutResult = { url: string; reference: string; token: string } | { error: string; status: number };
@@ -124,7 +127,7 @@ export async function createCheckout(req: Request, plan: PassId, currency: Curre
   const mode = paymentMode();
   if (mode === "disabled") return { error: "Payments open very soon. Nothing was charged.", status: 503 };
   const origin = publicOrigin(req);
-  if (!origin) return { error: "Checkout only works on the live site, not on a local computer. Nothing was charged.", status: 503 };
+  if (!origin) return { error: "Checkout only works on the live site. Nothing was charged.", status: 503 };
   const pass = PASSES[plan];
   const amount = pass.price[currency];
   const reference = `carreadi-${crypto.randomUUID()}`;

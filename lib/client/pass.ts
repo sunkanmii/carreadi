@@ -55,17 +55,17 @@ export async function restore(reference: string) {
   return r.status;
 }
 
-export async function startCheckout(plan: PassId, currency: Currency, email?: string) {
-  const r = await api<{ url: string; reference: string; token: string }>("/api/checkout", postJson({ plan, currency, email: email || undefined }));
+export async function startCheckout(plan: PassId, email?: string) {
+  // The server charges in the visitor's local currency; nothing here can change it.
+  const r = await api<{ url: string; reference: string; token: string }>("/api/checkout", postJson({ plan, email: email || undefined }));
   setPass({ token: r.token, reference: r.reference });
   window.location.href = r.url;
 }
 
-/** Sensible default: naira for visitors in Nigeria, dollars elsewhere. */
-export function defaultCurrency(): Currency {
+/** The currency the server will charge this visitor in (naira only in Nigeria). */
+export async function visitorCurrency(): Promise<Currency> {
   try {
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    return tz === "Africa/Lagos" || navigator.language.toLowerCase().endsWith("-ng") ? "NGN" : "USD";
+    return (await api<{ currency: Currency }>("/api/pricing")).currency;
   } catch {
     return "USD";
   }
