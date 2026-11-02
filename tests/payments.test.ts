@@ -61,20 +61,16 @@ describe("free preview", () => {
     roleTitle: "R", summary: "S", demonstratedSkills: ["SQL"], model: "m", createdAt: "",
     findings: [f("SQL", "demonstrated", 3), f("Go", "missing", 2), f("K8s", "missing", 1), f("AWS", "not_shown", 1), f("Visa", "eligibility", 1)],
   };
-  it("gives 1 gap in full, names a second, keeps strengths, and removes the rest", () => {
+  it("keeps only strengths and removes every gap and the summary", () => {
     const p = toPreview(a);
-    expect(p.findings.map((x) => x.requirement)).toEqual(["K8s", "AWS", "SQL"]);
-    expect(p.preview).toEqual({ locked: 2 });
-    expect(JSON.stringify(p)).not.toMatch(/"(Go|Visa)"/);
-    const by = (r: string) => p.findings.find((x) => x.requirement === r)!;
-    expect(by("K8s")).toMatchObject({ action: "a", deliverable: "d" });
-    expect(by("AWS")).toMatchObject({ action: "", deliverable: "", resource: { name: "", url: "" }, estimatedHours: 0 });
+    expect(p.findings.map((x) => x.requirement)).toEqual(["SQL"]);
+    expect(p.summary).toBe("");
+    expect(p.preview).toEqual({ locked: 4 });
+    expect(JSON.stringify(p)).not.toMatch(/"(Go|K8s|AWS|Visa)"/);
   });
-  it("builds a 1-task free roadmap from workable gaps, never from eligibility limits", async () => {
+  it("leaves a free preview with an empty roadmap", async () => {
     const { buildRoadmap } = await import("@/lib/roadmap");
-    expect(buildRoadmap(toPreview(a)).tasks.map((t) => t.requirement)).toEqual(["K8s"]);
-    const eligibilityFirst = { ...a, findings: [f("Visa", "eligibility", 1), f("Go", "missing", 2)] };
-    expect(buildRoadmap(toPreview(eligibilityFirst)).tasks.map((t) => t.requirement)).toEqual(["Go"]);
+    expect(buildRoadmap(toPreview(a)).tasks).toEqual([]);
   });
 });
 

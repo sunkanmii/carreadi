@@ -52,7 +52,9 @@ export default function Results() {
         <motion.h1 {...rise} transition={{ ...spring, delay: 0.05 }} className="mt-1 text-2xl font-semibold tracking-tight text-balance">
           {data.job ? `${data.job.title} · ${data.job.company}` : a.roleTitle}
         </motion.h1>
-        <motion.p {...rise} transition={{ ...spring, delay: 0.1 }} className="mt-3 text-[15px] leading-relaxed text-muted">{a.summary}</motion.p>
+        <motion.p {...rise} transition={{ ...spring, delay: 0.1 }} className="mt-3 text-[15px] leading-relaxed text-muted">
+          {a.preview ? "Here’s what your CV already proves for this job. What’s missing, and your plan to close it, unlock with a pass." : a.summary}
+        </motion.p>
 
         <AnimatePresence mode="wait">
           {next && (
@@ -110,15 +112,22 @@ export default function Results() {
           >
             {tab === "gaps" && (
               <>
-                <Evidence findings={a.findings} />
+                {a.findings.length > 0 ? (
+                  <Evidence findings={a.findings} />
+                ) : (
+                  <p className="text-sm text-muted">Your CV doesn’t clearly show this job’s requirements yet.</p>
+                )}
                 {a.preview && <Unlock locked={a.preview.locked} onUnlocked={() => setData(load())} />}
               </>
             )}
             {tab === "roadmap" && (
               <>
-                {/* Free previews include the first task; the rest of the roadmap unlocks with a pass. */}
-                <RoadmapView roadmap={roadmap} onChange={updateRoadmap} />
-                {a.preview && <Unlock locked={a.preview.locked} onUnlocked={() => setData(load())} />}
+                {/* The roadmap is built from the gaps, so a free preview has none to show. */}
+                {a.preview ? (
+                  <Unlock locked={a.preview.locked} onUnlocked={() => setData(load())} />
+                ) : (
+                  <RoadmapView roadmap={roadmap} onChange={updateRoadmap} />
+                )}
               </>
             )}
             {tab === "jobs" && <Recommendations data={data} />}

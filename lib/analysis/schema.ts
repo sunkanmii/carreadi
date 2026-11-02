@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { FREE_PREVIEW_GAPS, FREE_ROADMAP_STEPS } from "../plans";
 
 export const STATUSES = ["demonstrated", "not_shown", "missing", "uncertain", "eligibility"] as const;
 export const IMPORTANCE = ["required", "preferred", "bonus"] as const;
@@ -42,19 +41,12 @@ export interface Analysis {
 }
 
 /**
- * Free preview: strengths (what the résumé already shows), the top gap with its full step (so the
- * free roadmap has one real task to come back for), and one more gap by name only.
- * Everything else is removed here on the server, so it never reaches the browser.
+ * Free preview: only the strengths (what the résumé already shows). Every gap, the summary that
+ * names them, and so the whole roadmap are removed here on the server and never reach the browser.
  */
-export function toPreview(a: Analysis, gaps = FREE_PREVIEW_GAPS, withSteps = FREE_ROADMAP_STEPS): Analysis {
+export function toPreview(a: Analysis): Analysis {
   const shown = a.findings.filter((f) => f.status === "demonstrated");
-  // Hard eligibility limits can't become roadmap tasks, so free steps go to gaps the user can actually work on.
-  const open = a.findings.filter((f) => f.status !== "demonstrated").sort((x, y) => x.priority - y.priority);
-  const workable = open.filter((f) => f.status !== "eligibility");
-  const full = new Set(workable.slice(0, withSteps));
-  const visible = [...full, ...open.filter((f) => !full.has(f)).slice(0, Math.max(0, gaps - full.size))];
-  const teaser = visible.map((f) => (full.has(f) ? f : { ...f, action: "", deliverable: "", resource: { name: "", url: "" }, estimatedHours: 0 }));
-  return { ...a, findings: [...teaser, ...shown], preview: { locked: Math.max(0, open.length - visible.length) } };
+  return { ...a, summary: "", findings: shown, preview: { locked: a.findings.length - shown.length } };
 }
 
 export const AnalyzeRequestSchema = z
