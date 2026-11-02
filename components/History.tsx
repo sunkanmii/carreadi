@@ -3,7 +3,8 @@
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import AccountBox from "./AccountBox";
 import { loadHistory, openHistory, removeHistory, scoreOf, type HistoryEntry } from "@/lib/client/store";
 
 const spring = { type: "spring", stiffness: 300, damping: 30 } as const;
@@ -16,6 +17,7 @@ export default function History() {
   const [confirming, setConfirming] = useState<string | null>(null);
 
   useEffect(() => setList(loadHistory()), []);
+  const onSynced = useCallback((l: HistoryEntry[]) => setList(l), []);
 
   if (!list) return <div className="py-24 text-center text-sm text-muted">Loading…</div>;
 
@@ -25,9 +27,7 @@ export default function History() {
       <p className="mt-1 text-sm text-muted">
         Every job you&rsquo;ve checked your CV against, with your roadmap progress. Re-check a job after updating your CV to see how far you&rsquo;ve come.
       </p>
-      <p className="mt-3 rounded-xl bg-paper px-3 py-2 text-xs text-muted">
-        🔒 Saved on this device only, never on our servers. Clearing your browser data removes it.
-      </p>
+      <AccountBox onSynced={onSynced} />
 
       {list.length === 0 ? (
         <div className="mt-10 text-center">

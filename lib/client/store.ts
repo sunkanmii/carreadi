@@ -91,11 +91,28 @@ function recordHistory(s: Saved): HistoryEntry[] {
     previous,
   };
   const rest = list.filter((e) => e.id !== id);
-  return writeHistory(fresh ? [entry, ...rest] : list.map((e) => (e.id === id ? entry : e)));
+  const next = writeHistory(fresh ? [entry, ...rest] : list.map((e) => (e.id === id ? entry : e)));
+  // Signed-in (paid) users: keep the account copy in step. Loaded lazily, only when signed in.
+  if (signedIn()) void import("./account").then((m) => m.queuePush(entry));
+  return next;
 }
 
+const signedIn = () => {
+  try {
+    return !!localStorage.getItem("carreadi:session");
+  } catch {
+    return false;
+  }
+};
+
 export function removeHistory(id: string) {
+  if (signedIn()) void import("./account").then((m) => m.deleteRemote(id).catch(() => {}));
   return writeHistory(loadHistory().filter((e) => e.id !== id));
+}
+
+/** Replaces the whole history (after syncing with the account). */
+export function replaceHistory(list: HistoryEntry[]) {
+  return writeHistory(list);
 }
 
 /** The history entry for what's open now, if any. */
@@ -132,5 +149,7 @@ export function clearAll() {
   try {
     localStorage.removeItem(KEY);
     localStorage.removeItem(HISTORY_KEY);
+    // Also signs this device out, so the account copy doesn't sync straight back in.
+    localStorage.removeItem("carreadi:session");
   } catch {}
 }

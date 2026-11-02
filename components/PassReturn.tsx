@@ -83,6 +83,10 @@ export default function PassReturn() {
           <Link href="/" className="btn mt-6 w-full">Start an analysis</Link>
         )}
         {error && <p role="alert" className="mt-3 text-sm text-bad">{error}</p>}
+        <p className="mt-5 text-xs text-muted">
+          ☁️ Keep your checks on any device, even after your pass ends:{" "}
+          <Link href="/signin" className="font-medium text-accent underline">sign in with your email</Link>
+        </p>
       </motion.div>
     );
 

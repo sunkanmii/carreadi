@@ -379,3 +379,23 @@ export async function restorePass(reference: unknown): Promise<{ token: string; 
   await (await db()).prepare("UPDATE orders SET token_hash = ? WHERE reference = ?").bind(await hashToken(token), reference).run();
   return { token, status: statusOf({ ...o, token_hash: "" }) };
 }
+
+/** The reference of a pass this browser's token paid for (active or ended), for linking an email. */
+export async function paidReferenceForToken(token: unknown): Promise<string | null> {
+  if (!validToken(token)) return null;
+  const row = await (await db())
+    .prepare("SELECT reference FROM orders WHERE token_hash = ? AND status = 'paid' ORDER BY created_at DESC LIMIT 1")
+    .bind(await hashToken(token))
+    .first<{ reference: string }>();
+  return row?.reference ?? null;
+}
+
+/** Whether any paid pass was bought with this email (by its fingerprint). */
+export async function emailHasPaid(emailHash: string) {
+  return !!(await (await db()).prepare("SELECT 1 FROM orders WHERE email_hash = ? AND status = 'paid' LIMIT 1").bind(emailHash).first());
+}
+
+/** Links an email fingerprint to a paid pass that has none yet, so the email can sign in later. */
+export async function linkEmailToOrder(reference: string, emailHash: string) {
+  await (await db()).prepare("UPDATE orders SET email_hash = ? WHERE reference = ? AND email_hash IS NULL").bind(emailHash, reference).run();
+}

@@ -75,7 +75,9 @@ export default function Page() {
 
       <Section title="6. Your CV and data">
         You own your CV. When you choose to run an analysis, you let us send its text to our AI provider only to produce your results;
-        we don&rsquo;t store your CV on our servers. Your results are saved in your own browser. Only upload a CV that is yours or that you
+        we don&rsquo;t store your CV on our servers. Your results are saved in your own browser and, if you have a pass and choose to
+        sign in, encrypted in your Carreadi account so you can see them on other devices. Saved checks stay available after your pass
+        ends, until you delete them or the account goes unused for 12 months. Only upload a CV that is yours or that you
         have permission to use. See the <Link className="underline" href="/privacy">Privacy page</Link> for details and how to delete your data.
       </Section>
 

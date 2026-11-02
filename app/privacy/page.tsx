@@ -14,7 +14,16 @@ export default function Page() {
           Only after you tick the consent box, the extracted text is sent to <b className="text-ink">our AI provider</b> for one
           analysis. We don&rsquo;t store or log it.
         </li>
-        <li>Your résumé text, results and roadmap are saved <b className="text-ink">only in this browser</b>.</li>
+        <li>
+          Your résumé text is saved <b className="text-ink">only in this browser</b>. Your results, roadmap and history of checks are
+          too, unless you sign in.
+        </li>
+        <li>
+          <b className="text-ink">If you have a pass and sign in</b>, we also keep your checks (results and roadmaps, never your CV
+          text or file) in your account, encrypted, so you can see them on any device. Sign-in uses a one-time link sent by email
+          through our email provider; we keep only a scrambled fingerprint of your email, not the address. You can delete everything
+          saved in your account from the History page at any time. Accounts unused for 12 months are deleted with their checks.
+        </li>
         <li>To enforce the free limit, the server keeps salted hashes of your IP with the day and week, plus counters, deleted after 8 days.</li>
         <li>
           Jobs come from employers&rsquo; public job boards (Greenhouse, Lever, Ashby, Workable, Recruitee) and, only if you turn them
