@@ -3,7 +3,7 @@
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { track } from "@/lib/client/analytics";
-import { startCheckout, visitorCurrency } from "@/lib/client/pass";
+import { daysLeft, passStatus, startCheckout, visitorCurrency, type PassStatus } from "@/lib/client/pass";
 import { formatPrice, PASSES, type Currency, type PassId } from "@/lib/plans";
 import { Spinner } from "./Analyzer";
 
@@ -17,8 +17,10 @@ export default function BuyPass({ compact = false }: { compact?: boolean }) {
   const [busy, setBusy] = useState<PassId | null>(null);
   const [error, setError] = useState("");
   const [email, setEmail] = useState("");
+  const [active, setActive] = useState<PassStatus | null>(null);
   useEffect(() => {
     visitorCurrency().then(setCurrency);
+    passStatus().then((s) => setActive(s.active ? s : null)).catch(() => {});
   }, []);
 
   async function buy(plan: PassId) {
@@ -32,6 +34,18 @@ export default function BuyPass({ compact = false }: { compact?: boolean }) {
       setBusy(null);
     }
   }
+
+  // One pass at a time: while one is active there is nothing to buy (the server refuses too).
+  if (active?.plan)
+    return (
+      <div className="rounded-2xl bg-accent-soft p-5 text-center text-sm">
+        <p className="font-medium text-accent">
+          You have an active {PASSES[active.plan].name.toLowerCase()} · {daysLeft(active.expiresAt)} day{daysLeft(active.expiresAt) === 1 ? "" : "s"} left ·{" "}
+          {active.analysesLeft} analyses left
+        </p>
+        <p className="mt-1 text-muted">You can buy a new pass when this one ends.</p>
+      </div>
+    );
 
   return (
     <div>

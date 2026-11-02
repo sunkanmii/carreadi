@@ -270,9 +270,14 @@ export interface PassStatus {
   reference?: string;
 }
 
+/** Active = paid, not expired, and analyses left. A used-up pass must not block buying a new one. */
+export function passIsActive(o: Pick<Order, "status" | "expires_at" | "analyses_used" | "analyses_limit">, now = Date.now()) {
+  return o.status === "paid" && (o.expires_at ?? 0) > now && o.analyses_used < o.analyses_limit;
+}
+
 function statusOf(o: Order | null): PassStatus {
   if (!o) return { active: false };
-  const active = o.status === "paid" && (o.expires_at ?? 0) > Date.now();
+  const active = passIsActive(o);
   return {
     active,
     plan: o.plan,
@@ -288,7 +293,10 @@ export async function passStatus(token: unknown, check = false): Promise<PassSta
   if (!validToken(token)) return { active: false };
   const d = await db();
   let o = await d.prepare("SELECT * FROM orders WHERE token_hash = ? ORDER BY created_at DESC LIMIT 1").bind(await hashToken(token)).first<Order>();
-  if (o && check && o.status === "pending") {
+  // Pending orders are always checked with Bachs (not only on the return page): a buyer who paid
+  // and closed the tab must still get their pass even if the webhook is slow. `check` is kept for callers.
+  void check;
+  if (o && o.status === "pending" && Date.now() - o.created_at > 5_000) {
     try {
       await reconcile(o);
       o = await byReference(o.reference);

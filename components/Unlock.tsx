@@ -40,6 +40,9 @@ export default function Unlock({ locked, onUnlocked }: { locked: number; onUnloc
           </div>
         ))}
       </div>
+      {pass && !pass.active && pass.plan && (
+        <p className="mb-2 text-center text-sm text-warn">Your pass has ended or has no analyses left, so this is a free preview.</p>
+      )}
       <p className="text-center font-medium">
         🔒 {locked > 0 ? `${locked} more gap${locked === 1 ? "" : "s"} and your full roadmap` : "Your full roadmap"} {locked === 1 ? "is" : "are"} locked
       </p>

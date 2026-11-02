@@ -10,6 +10,8 @@ const KEY = "carreadi:pass";
 export interface StoredPass {
   token: string;
   reference: string;
+  /** The pass held before a new checkout started; used again if that checkout never completes. */
+  previous?: { token: string; reference: string };
 }
 export interface PassStatus {
   active: boolean;
@@ -43,10 +45,21 @@ export function clearPass() {
   window.dispatchEvent(new Event("carreadi:pass"));
 }
 
+const statusOf = (token: string, check: boolean) => api<PassStatus>("/api/pass", postJson({ action: "status", token, check }));
+
 export async function passStatus(check = false): Promise<PassStatus> {
   const p = getPass();
   if (!p) return { active: false };
-  return api<PassStatus>("/api/pass", postJson({ action: "status", token: p.token, check }));
+  const s = await statusOf(p.token, check);
+  // A new purchase that never completed must not hide a pass that is still active.
+  if (!s.active && p.previous) {
+    const prev = await statusOf(p.previous.token, false).catch(() => null);
+    if (prev?.active) {
+      setPass(p.previous);
+      return prev;
+    }
+  }
+  return s;
 }
 
 export async function restore(reference: string) {
@@ -57,8 +70,13 @@ export async function restore(reference: string) {
 
 export async function startCheckout(plan: PassId, email?: string) {
   // The server charges in the visitor's local currency; nothing here can change it.
-  const r = await api<{ url: string; reference: string; token: string }>("/api/checkout", postJson({ plan, email: email || undefined }));
-  setPass({ token: r.token, reference: r.reference });
+  const current = getPass();
+  const r = await api<{ url: string; reference: string; token: string }>(
+    "/api/checkout",
+    postJson({ plan, email: email || undefined, passToken: current?.token }),
+  );
+  // Keep the old pass alongside the new one, so nothing is lost if this checkout is abandoned.
+  setPass({ token: r.token, reference: r.reference, previous: current ? { token: current.token, reference: current.reference } : undefined });
   window.location.href = r.url;
 }
 

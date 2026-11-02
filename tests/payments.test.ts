@@ -97,3 +97,16 @@ describe("currency by location", () => {
     expect(currencyFor(req())).toBe("USD");
   });
 });
+
+describe("pass activity", () => {
+  it("is active only while paid, unexpired and with analyses left", async () => {
+    const { passIsActive } = await import("@/lib/server/payments");
+    const now = Date.now();
+    const base = { status: "paid" as const, expires_at: now + 864e5, analyses_used: 0, analyses_limit: 5 };
+    expect(passIsActive(base, now)).toBe(true);
+    expect(passIsActive({ ...base, analyses_used: 5 }, now)).toBe(false); // used up → may buy again
+    expect(passIsActive({ ...base, expires_at: now - 1 }, now)).toBe(false);
+    expect(passIsActive({ ...base, status: "pending" as never }, now)).toBe(false);
+    expect(passIsActive({ ...base, status: "reversed" as never }, now)).toBe(false); // refunded
+  });
+});
