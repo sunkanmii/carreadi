@@ -40,7 +40,7 @@ export default function BuyPass({ compact = false }: { compact?: boolean }) {
         {currency === "NGN" ? "Prices in naira for Nigeria." : currency ? "Prices in US dollars." : " "}
       </p>
       <div className="mx-auto mb-4 max-w-sm">
-        <label htmlFor="pass-email" className="label text-center">Email for your receipt and pass recovery (optional)</label>
+        <label htmlFor="pass-email" className="label text-center">Email for pass recovery (optional)</label>
         <input id="pass-email" type="email" autoComplete="email" maxLength={254} className="ph-mask field text-center" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
         <p className="mt-1.5 text-center text-xs text-muted">If you clear your browser, this is how we find your pass. Never shown publicly or used for marketing.</p>
       </div>

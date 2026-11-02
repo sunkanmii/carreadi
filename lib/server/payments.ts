@@ -147,8 +147,9 @@ export async function createCheckout(req: Request, plan: PassId, currency: Curre
       body: JSON.stringify({
         pricing: { currency, amount: majorAmount(amount), price_type: "fixed" },
         billing_currency: currency,
-        // Bachs sends its receipt (with this reference = restore code) to this address.
-        ...(email ? { customer: { email } } : {}),
+        // No `customer` on purpose: then Bachs's own page asks for the buyer's email and name
+        // (sending one makes Bachs skip that step). `always` saves them to your Bachs customer list.
+        customer_creation: "always",
         reference,
         metadata: { order_id: reference, sku: plan },
         success_url: `${origin}/pass?reference=${reference}`,
