@@ -35,7 +35,7 @@ export default function Page() {
         </li>
       </ul>
       <p className="mt-6 text-sm text-muted">
-        Questions, payment problems or data requests:{" "}
+        See also the <a href="/terms" className="underline">Terms of Service</a>. Questions, payment problems or data requests:{" "}
         <a href={`mailto:${SUPPORT_EMAIL}`} className="font-medium text-ink underline">{SUPPORT_EMAIL}</a>
       </p>
       <div className="mt-8 space-y-6">

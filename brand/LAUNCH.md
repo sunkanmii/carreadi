@@ -49,12 +49,14 @@ So I built Carreadi:
 
 First check free: carreadi.naijabukana.com
 
+#buildinpublic #jobsearch
+
 **Thread**
-1/ Job hunting is guessing. You never know which requirement is costing you the interview. I built Carreadi to fix that 🧵
+1/ Job hunting is guessing. You never know which requirement is costing you the interview. I built Carreadi to fix that 🧵 #buildinpublic
 2/ Upload your CV. In ~30 seconds it scans 2,900+ live jobs from 23 job boards and shows the ones that fit.
 3/ For each job: what you already have (quoted from your CV, no AI making it up), what's missing, and dealbreakers like location or visa.
 4/ Then a roadmap: what to build, free resources, hours per step. 23 career paths, tech and non-tech.
-5/ No account. CV never stored. First check free → carreadi.naijabukana.com
+5/ No account. CV never stored. First check free → carreadi.naijabukana.com #buildinpublic #jobsearch
 
 ---
 

@@ -59,6 +59,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <footer className="mx-auto flex w-full max-w-3xl gap-5 px-5 py-8 text-xs text-muted">
           <Link href="/plans" className="hover:text-ink">Pricing</Link>
           <Link href="/request" className="hover:text-ink">Request a company</Link>
+          <Link href="/terms" className="hover:text-ink">Terms</Link>
           <Link href="/privacy" className="hover:text-ink">Privacy &amp; data</Link>
           <a href={`mailto:${SUPPORT_EMAIL}`} className="hover:text-ink">Contact</a>
         </footer>

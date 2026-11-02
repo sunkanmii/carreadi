@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { track } from "@/lib/client/analytics";
 import { daysLeft, passStatus, startCheckout, visitorCurrency, type PassStatus } from "@/lib/client/pass";
@@ -91,6 +92,9 @@ export default function BuyPass({ compact = false }: { compact?: boolean }) {
       </div>
       {error && <p role="alert" className="mt-3 rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">{error}</p>}
       <p className="mt-3 text-center text-xs text-muted">One-time payment via Bachs. No subscription, no sign-up. Cards, bank transfer and more.</p>
+      <p className="mt-1 text-center text-xs text-muted">
+        By buying you agree to the <Link href="/terms" className="underline">Terms</Link>. All sales are final (<Link href="/terms#refunds" className="underline">refund policy</Link>).
+      </p>
     </div>
   );
 }
