@@ -13,6 +13,7 @@ tsconfig.tsbuildinfo
 .dev.vars*
 !.dev.vars.example
 *.local.txt
+*.local.md
 
 # AI assistant / editor settings and local tooling
 .claude/
