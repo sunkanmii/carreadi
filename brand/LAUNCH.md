@@ -39,15 +39,15 @@ Drop what it says about your CV in the comments. I'm reading every one.
 ## X (Twitter)
 
 **Single post**
-I applied for months without knowing why I wasn't getting replies.
+I applied for months and never knew why I wasn't getting replies.
 
 So I built Carreadi:
 → upload your CV
-→ matched against 2,900+ live jobs
+→ matched to 2,900+ live jobs
 → see what you have, what's missing, and a step-by-step plan
-→ ~30 seconds, no sign-up
 
-First check free: carreadi.naijabukana.com
+~30 seconds. No sign-up. First check free:
+carreadi.naijabukana.com
 
 #buildinpublic #jobsearch
 
