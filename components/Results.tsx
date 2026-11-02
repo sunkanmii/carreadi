@@ -9,9 +9,10 @@ import { track } from "@/lib/client/analytics";
 import { api, postJson } from "@/lib/client/http";
 import { safeHref } from "@/lib/url";
 import { getPass } from "@/lib/client/pass";
-import { load, save, type Saved } from "@/lib/client/store";
+import { currentEntry, load, save, scoreOf, type Saved } from "@/lib/client/store";
 import type { Recommendation, Tier } from "@/lib/recommend";
 import { nextTask, type Roadmap } from "@/lib/roadmap";
+import ExportMenu from "./ExportMenu";
 import JobCard from "./JobCard";
 import RoadmapView from "./RoadmapView";
 import Unlock from "./Unlock";
@@ -53,8 +54,10 @@ export default function Results() {
           {data.job ? `${data.job.title} · ${data.job.company}` : a.roleTitle}
         </motion.h1>
         <motion.p {...rise} transition={{ ...spring, delay: 0.1 }} className="mt-3 text-[15px] leading-relaxed text-muted">
-          {a.preview ? "Here’s what your CV already proves for this job, and one thing holding you back. Every other gap, and your plan to close them, unlock with a pass." : a.summary}
+          {a.preview ? "Here’s what your CV already proves for this job, one thing holding you back, and your first step to fix it. Every other gap, and the full plan, unlock with a pass." : a.summary}
         </motion.p>
+
+        <Progress analysis={a} />
 
         <AnimatePresence mode="wait">
           {next && (
@@ -79,6 +82,7 @@ export default function Results() {
 
         <motion.div {...rise} transition={{ ...spring, delay: 0.2 }} className="mt-6 flex flex-wrap items-center gap-2">
           <Link href="/" className="btn-ghost">Re-check with updated résumé</Link>
+          <ExportMenu data={data} />
           {data.job?.applyUrl && (
             <a href={safeHref(data.job.applyUrl)} target="_blank" rel="noopener noreferrer" className="btn-ghost" onClick={() => track("application_opened", { from: "results" })}>
               Open application ↗
@@ -122,12 +126,9 @@ export default function Results() {
             )}
             {tab === "roadmap" && (
               <>
-                {/* The roadmap is built from the gaps, so a free preview has none to show. */}
-                {a.preview ? (
-                  <Unlock locked={a.preview.locked} onUnlocked={() => setData(load())} />
-                ) : (
-                  <RoadmapView roadmap={roadmap} onChange={updateRoadmap} />
-                )}
+                {/* A free preview's roadmap has the one step for its one gap; the rest unlocks with a pass. */}
+                <RoadmapView roadmap={roadmap} onChange={updateRoadmap} />
+                {a.preview && <Unlock locked={a.preview.locked} onUnlocked={() => setData(load())} />}
               </>
             )}
             {tab === "jobs" && <Recommendations data={data} />}
@@ -200,6 +201,22 @@ function Evidence({ findings }: { findings: Finding[] }) {
         ))}
       </ul>
     </div>
+  );
+}
+
+/** "Last check: 3 of 7 → now 5 of 7", when this job was checked before. */
+function Progress({ analysis }: { analysis: Saved["analysis"] }) {
+  const [prev, setPrev] = useState<{ shown: number; total: number; at: string } | undefined>();
+  useEffect(() => setPrev(currentEntry()?.previous), [analysis]);
+  if (!prev || !analysis) return null;
+  const now = scoreOf(analysis);
+  const gained = now.shown - prev.shown;
+  return (
+    <motion.p {...rise} transition={{ ...spring, delay: 0.12 }} className={`mt-4 rounded-xl px-3 py-2 text-sm ${gained > 0 ? "bg-accent-soft text-accent" : "bg-paper text-muted"}`}>
+      {gained > 0 ? "🎉 " : ""}Last check: {prev.shown} of {prev.total} shown → now <b>{now.shown} of {now.total}</b>
+      {gained > 0 ? `. ${gained} more requirement${gained === 1 ? "" : "s"} proven.` : "."}{" "}
+      <Link href="/history" className="underline underline-offset-2">See history</Link>
+    </motion.p>
   );
 }
 

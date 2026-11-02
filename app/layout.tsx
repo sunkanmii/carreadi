@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Analytics from "@/components/Analytics";
+import MobileNav from "@/components/MobileNav";
 import PassBadge from "@/components/PassBadge";
 import { SUPPORT_EMAIL } from "@/lib/contact";
 import "./globals.css";
@@ -42,17 +43,19 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="flex min-h-dvh flex-col">
-        <header className="mx-auto flex w-full max-w-3xl items-center justify-between px-5 py-5">
+        <header className="relative mx-auto flex w-full max-w-3xl items-center justify-between px-5 py-5">
           <Link href="/" className="flex items-center gap-2 text-[15px] font-semibold tracking-tight">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/icon.svg" alt="" width={24} height={24} className="rounded-md" />
             carreadi
           </Link>
-          <nav className="flex items-center gap-5 text-sm text-muted">
+          <nav className="hidden items-center gap-5 text-sm whitespace-nowrap text-muted sm:flex">
             <Link href="/results" className="hover:text-ink">My roadmap</Link>
+            <Link href="/history" className="hover:text-ink">History</Link>
             <Link href="/jobs" className="hover:text-ink">Jobs</Link>
             <PassBadge />
           </nav>
+          <MobileNav />
         </header>
         <Analytics />
         <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-5">{children}</main>

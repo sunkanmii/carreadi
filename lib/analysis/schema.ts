@@ -41,16 +41,16 @@ export interface Analysis {
 }
 
 /**
- * Free preview: the strengths (what the résumé already shows) and one gap by name, its steps
- * stripped, as a taste. Every other gap, the summary that names them, and so the whole roadmap
- * are removed here on the server and never reach the browser.
+ * Free preview: the strengths (what the résumé already shows) and one gap with its step, so the
+ * free roadmap has one real task. Every other gap, and the summary that names them, are removed
+ * here on the server and never reach the browser.
  */
 export function toPreview(a: Analysis): Analysis {
   const shown = a.findings.filter((f) => f.status === "demonstrated");
   // The teaser is the top gap the user can work on; eligibility limits only if there is nothing else.
   const open = a.findings.filter((f) => f.status !== "demonstrated").sort((x, y) => x.priority - y.priority);
   const top = open.find((f) => f.status !== "eligibility") ?? open[0];
-  const teaser = top ? [{ ...top, action: "", deliverable: "", resource: { name: "", url: "" }, estimatedHours: 0 }] : [];
+  const teaser = top ? [top] : [];
   return { ...a, summary: "", findings: [...teaser, ...shown], preview: { locked: open.length - teaser.length } };
 }
 

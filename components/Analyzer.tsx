@@ -13,6 +13,7 @@ import { buildRoadmap } from "@/lib/roadmap";
 import type { Job, JobSummary, Provider } from "@/lib/types";
 import { track } from "@/lib/client/analytics";
 import { getPass } from "@/lib/client/pass";
+import AnalyzeProgress from "./AnalyzeProgress";
 import SourcePicker, { useSources } from "./SourcePicker";
 
 type JobMode = "match" | "pick" | "paste";
@@ -33,6 +34,7 @@ export default function Analyzer() {
   const [sources, setSources] = useSources();
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [reconnecting, setReconnecting] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -45,7 +47,13 @@ export default function Analyzer() {
     }
     if (s.prefs) setPrefs(s.prefs);
     else if (s.resumeText) setPrefs((p) => ({ ...p, careerPath: guessCareerPath(s.resumeText!) }));
-    const id = new URLSearchParams(window.location.search).get("job");
+    const params = new URLSearchParams(window.location.search);
+    // Re-checking a pasted job from the history: bring the job text back.
+    if (params.has("recheck") && s.jobText && !s.jobId) {
+      setMode("paste");
+      setJobText(s.jobText);
+    }
+    const id = params.get("job");
     if (id) {
       setMode("pick");
       api<{ job: Job }>(`/api/jobs/${encodeURIComponent(id)}`)
@@ -82,6 +90,7 @@ export default function Analyzer() {
 
   async function submit(retried = false) {
     setBusy(true);
+    setReconnecting(retried);
     setError("");
     try {
       const usePicked = mode !== "paste" && picked;
@@ -132,6 +141,7 @@ export default function Analyzer() {
       track("analysis_failed", { reason: e instanceof Error ? e.message.slice(0, 80) : "unknown" });
       setError(e instanceof Error ? e.message : "Analysis failed.");
       setBusy(false);
+      setReconnecting(false);
     }
   }
 
@@ -265,8 +275,9 @@ export default function Analyzer() {
 
           <button className="btn w-full" disabled={!canSubmit} onClick={() => submit()}>
             {busy && <Spinner />}
-            {busy ? "Analyzing — up to a minute" : "Check my career readiness"}
+            {busy ? "Analyzing your CV…" : "Check my career readiness"}
           </button>
+          {busy && <AnalyzeProgress key={reconnecting ? "re" : "first"} reconnecting={reconnecting} />}
         </div>
       )}
 
