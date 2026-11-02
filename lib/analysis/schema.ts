@@ -42,8 +42,8 @@ export interface Analysis {
 }
 
 /**
- * Free preview: strengths (what the résumé already shows), the top gaps with full steps (so the
- * free roadmap has a couple of real tasks to come back for), and a few more gaps by name only.
+ * Free preview: strengths (what the résumé already shows), the top gap with its full step (so the
+ * free roadmap has one real task to come back for), and one more gap by name only.
  * Everything else is removed here on the server, so it never reaches the browser.
  */
 export function toPreview(a: Analysis, gaps = FREE_PREVIEW_GAPS, withSteps = FREE_ROADMAP_STEPS): Analysis {

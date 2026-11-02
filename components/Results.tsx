@@ -116,7 +116,7 @@ export default function Results() {
             )}
             {tab === "roadmap" && (
               <>
-                {/* Free previews include the first couple of tasks; the rest of the roadmap unlocks with a pass. */}
+                {/* Free previews include the first task; the rest of the roadmap unlocks with a pass. */}
                 <RoadmapView roadmap={roadmap} onChange={updateRoadmap} />
                 {a.preview && <Unlock locked={a.preview.locked} onUnlocked={() => setData(load())} />}
               </>

@@ -2,9 +2,9 @@
 export const FREE_LIMIT = 1; // per day
 export const FREE_WEEKLY_LIMIT = 1;
 /** Gaps named on a free preview; everything else is removed server-side. */
-export const FREE_PREVIEW_GAPS = 3;
-/** Of those, how many keep their full steps, so the free roadmap has a couple of real tasks. */
-export const FREE_ROADMAP_STEPS = 2;
+export const FREE_PREVIEW_GAPS = 2;
+/** Of those, how many keep their full steps: the free roadmap gets one real task. */
+export const FREE_ROADMAP_STEPS = 1;
 /** Job matches shown without a pass. */
 export const FREE_MATCHES = 3;
 

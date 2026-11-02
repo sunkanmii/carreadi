@@ -61,19 +61,20 @@ describe("free preview", () => {
     roleTitle: "R", summary: "S", demonstratedSkills: ["SQL"], model: "m", createdAt: "",
     findings: [f("SQL", "demonstrated", 3), f("Go", "missing", 2), f("K8s", "missing", 1), f("AWS", "not_shown", 1), f("Visa", "eligibility", 1)],
   };
-  it("gives 2 gaps in full, names a third, keeps strengths, and removes the rest", () => {
+  it("gives 1 gap in full, names a second, keeps strengths, and removes the rest", () => {
     const p = toPreview(a);
-    expect(p.findings.map((x) => x.requirement)).toEqual(["K8s", "AWS", "Visa", "SQL"]);
-    expect(p.preview).toEqual({ locked: 1 });
-    expect(JSON.stringify(p)).not.toMatch(/"Go"/);
+    expect(p.findings.map((x) => x.requirement)).toEqual(["K8s", "AWS", "SQL"]);
+    expect(p.preview).toEqual({ locked: 2 });
+    expect(JSON.stringify(p)).not.toMatch(/"(Go|Visa)"/);
     const by = (r: string) => p.findings.find((x) => x.requirement === r)!;
-    expect(by("K8s").action).toBe("a");
-    expect(by("AWS").deliverable).toBe("d");
-    expect(by("Visa")).toMatchObject({ action: "", deliverable: "", resource: { name: "", url: "" }, estimatedHours: 0 });
+    expect(by("K8s")).toMatchObject({ action: "a", deliverable: "d" });
+    expect(by("AWS")).toMatchObject({ action: "", deliverable: "", resource: { name: "", url: "" }, estimatedHours: 0 });
   });
-  it("builds a 2-task free roadmap from workable gaps, never from eligibility limits", async () => {
+  it("builds a 1-task free roadmap from workable gaps, never from eligibility limits", async () => {
     const { buildRoadmap } = await import("@/lib/roadmap");
-    expect(buildRoadmap(toPreview(a)).tasks.map((t) => t.requirement)).toEqual(["K8s", "AWS"]);
+    expect(buildRoadmap(toPreview(a)).tasks.map((t) => t.requirement)).toEqual(["K8s"]);
+    const eligibilityFirst = { ...a, findings: [f("Visa", "eligibility", 1), f("Go", "missing", 2)] };
+    expect(buildRoadmap(toPreview(eligibilityFirst)).tasks.map((t) => t.requirement)).toEqual(["Go"]);
   });
 });
 
