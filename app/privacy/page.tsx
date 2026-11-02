@@ -11,7 +11,7 @@ export default function Page() {
       <ul className="mt-6 list-disc space-y-3 pl-5 text-muted">
         <li>Your résumé file is read <b className="text-ink">in your browser</b>. The file is never uploaded.</li>
         <li>
-          Only after you tick the consent box, the extracted text is sent to <b className="text-ink">Cloudflare Workers AI</b> for one
+          Only after you tick the consent box, the extracted text is sent to <b className="text-ink">our AI provider</b> for one
           analysis. We don&rsquo;t store or log it.
         </li>
         <li>Your résumé text, results and roadmap are saved <b className="text-ink">only in this browser</b>.</li>
@@ -29,7 +29,7 @@ export default function Page() {
           until we&rsquo;ve replied (and no longer than 60 days).
         </li>
         <li>
-          We use <b className="text-ink">PostHog</b> to see how the site is used (pages, clicks, and steps like &ldquo;analysis
+          We use <b className="text-ink">an analytics tool</b> to see how the site is used (pages, clicks, and steps like &ldquo;analysis
           finished&rdquo;). Session replays hide everything you type and your résumé-based results. Your résumé text and file
           name are never sent to analytics.
         </li>
