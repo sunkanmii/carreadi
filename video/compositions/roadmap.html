@@ -1,0 +1,134 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      background: #eef2ef;
+      overflow: hidden;
+      font-family: Inter, sans-serif;
+    }
+    #cam {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+    }
+    #frame {
+      position: absolute;
+      left: 160px;
+      top: 90px;
+      width: 1600px;
+      height: 900px;
+      border-radius: 28px;
+      overflow: hidden;
+      background: #fbfaf8;
+      box-shadow: 0 40px 120px -30px rgba(22, 24, 29, 0.35), 0 0 0 1px rgba(22, 24, 29, 0.06);
+    }
+    #shot {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1600px;
+      height: 900px;
+    }
+    #hours-box {
+      position: absolute;
+      left: 604px;
+      top: 179px;
+      width: 116px;
+      height: 30px;
+      opacity: 0;
+      border-radius: 10px;
+      border: 3px solid #f2c14e;
+      box-shadow: 0 0 0 6px rgba(242, 193, 78, 0.25);
+    }
+    #check {
+      position: absolute;
+      left: 520px;
+      top: 293px;
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      background: #1f5f4a;
+      opacity: 0;
+    }
+    #check svg {
+      position: absolute;
+      inset: 4px;
+    }
+    .p {
+      position: absolute;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      left: 531px;
+      top: 304px;
+      opacity: 0;
+    }
+    #words {
+      position: absolute;
+      left: 1420px;
+      top: 380px;
+      font-size: 56px;
+      font-weight: 700;
+      letter-spacing: -2px;
+      color: #16181d;
+      line-height: 1.25;
+    }
+    #words div {
+      white-space: nowrap;
+    }
+    #words .g {
+      color: #1f5f4a;
+    }
+  </style>
+  <div data-hf-id="hf-3qbx" id="root" data-composition-id="roadmap" data-width="1920" data-height="1080">
+    <div data-hf-id="hf-sw5d" id="cam" class="clip" data-start="0" data-duration="8.2">
+      <div data-hf-id="hf-xfzw" id="frame">
+        <img data-hf-id="hf-vtxm" id="shot" src="assets/screens/06-roadmap.png" alt="" />
+        <div data-hf-id="hf-qi96" id="hours-box"></div>
+        <div data-hf-id="hf-lsvv" id="check">
+          <svg data-hf-id="hf-56ve" viewBox="0 0 24 24" width="20" height="20"><path data-hf-id="hf-i554" id="tickpath" d="M5 12l5 5L20 7" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </div>
+        <div data-hf-id="hf-xjo3" id="p1" class="p" style="background: #1f5f4a"></div>
+        <div data-hf-id="hf-9yco" id="p2" class="p" style="background: #f2c14e"></div>
+        <div data-hf-id="hf-o1my" id="p3" class="p" style="background: #3f9b7a"></div>
+        <div data-hf-id="hf-o0sq" id="p4" class="p" style="background: #16181d"></div>
+        <div data-hf-id="hf-vvjj" id="p5" class="p" style="background: #f2c14e"></div>
+        <div data-hf-id="hf-crys" id="p6" class="p" style="background: #1f5f4a"></div>
+        <div data-hf-id="hf-6w3a" id="p7" class="p" style="background: #3f9b7a"></div>
+        <div data-hf-id="hf-ap7q" id="p8" class="p" style="background: #f2c14e"></div>
+      </div>
+    </div>
+    <div data-hf-id="hf-6fjb" id="words" class="clip" data-start="0" data-duration="8.2">
+      <div data-hf-id="hf-td80" id="wd1">Every step.</div>
+      <div data-hf-id="hf-6t3j" id="wd2">Every resource.</div>
+      <div data-hf-id="hf-68x6" id="wd3" class="g">Every hour.</div>
+    </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    const at = (px, py, s) => ({ x: 960 - s * px, y: 540 - s * py, scale: s });
+    gsap.set("#cam", { transformOrigin: "0 0" });
+
+    tl.fromTo("#cam", { ...at(960, 280, 1.6), opacity: 0 }, { ...at(930, 270, 1.7), opacity: 1, duration: 0.45, ease: "power3.out" }, 0);
+    tl.fromTo("#hours-box", { scale: 0.9, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.35, ease: "back.out(2)" }, 0.9);
+    tl.to("#hours-box", { opacity: 0, duration: 0.2 }, 2.5);
+    // Down to step 1 and tick it
+    tl.to("#cam", { ...at(940, 430, 1.75), duration: 0.9, ease: "power3.inOut" }, 2.5);
+    tl.fromTo("#check", { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3, ease: "back.out(3)" }, 3.6);
+    tl.fromTo("#tickpath", { strokeDasharray: 30, strokeDashoffset: 30 }, { strokeDashoffset: 0, duration: 0.3, ease: "power2.out" }, 3.75);
+    const angles = [0, 45, 90, 135, 180, 225, 270, 315];
+    angles.forEach((a, i) => {
+      const r = (a * Math.PI) / 180;
+      tl.fromTo(`#p${i + 1}`, { x: 0, y: 0, scale: 1, opacity: 1 }, { x: Math.cos(r) * 46, y: Math.sin(r) * 46, scale: 0, opacity: 0, duration: 0.6, ease: "power2.out", immediateRender: false }, 3.65);
+    });
+    // Pull back, screen slides left, the three beats land on the right
+    tl.to("#cam", { ...at(1200, 540, 0.75), duration: 0.9, ease: "power3.inOut" }, 4.5);
+    tl.fromTo(["#wd1", "#wd2", "#wd3"], { x: 60, opacity: 0 }, { x: 0, opacity: 1, duration: 0.45, ease: "power4.out", stagger: 0.55 }, 5.1);
+    // Exit
+    tl.to(["#cam", "#words"], { opacity: 0, duration: 0.25, ease: "power2.in" }, 7.92);
+    window.__timelines["roadmap"] = tl;
+  </script>
+</template>

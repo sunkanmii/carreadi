@@ -1,0 +1,81 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      background: #fbfaf8;
+      overflow: hidden;
+      font-family: Inter, sans-serif;
+    }
+    #blob {
+      position: absolute;
+      left: 1180px;
+      top: -260px;
+      width: 900px;
+      height: 900px;
+      border-radius: 50%;
+      background: #e6f0ec;
+    }
+    #mark {
+      position: absolute;
+      left: 912px;
+      top: 300px;
+      width: 96px;
+      height: 96px;
+    }
+    #headline {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 450px;
+      text-align: center;
+      font-size: 92px;
+      font-weight: 700;
+      letter-spacing: -3px;
+      color: #16181d;
+      line-height: 1.1;
+    }
+    .w {
+      display: inline-block;
+      margin: 0 12px;
+    }
+    #guess {
+      position: relative;
+      display: inline-block;
+      color: #1f5f4a;
+    }
+    #underline {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -6px;
+      height: 10px;
+      border-radius: 5px;
+      background: #f2c14e;
+    }
+  </style>
+  <div data-hf-id="hf-ypfn" id="root" data-composition-id="intro" data-width="1920" data-height="1080">
+    <div data-hf-id="hf-pbi2" id="blob" class="clip" data-start="0" data-duration="3.4"></div>
+    <svg data-hf-id="hf-o18u" id="mark" class="clip" data-start="0" data-duration="3.4" viewBox="0 0 64 64">
+      <rect data-hf-id="hf-p216" width="64" height="64" rx="15" fill="#1f5f4a" />
+      <path data-hf-id="hf-ndci" d="M14 47 H26 V36 H37 V25" fill="none" stroke="#fff" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" />
+      <circle data-hf-id="hf-qmdq" cx="46" cy="18" r="6.5" fill="#f2c14e" />
+    </svg>
+    <h1 data-hf-id="hf-rgbh" id="headline" class="clip" data-start="0" data-duration="3.4">
+      <span data-hf-id="hf-994h" class="w" id="w1">Job</span><span data-hf-id="hf-ac30" class="w" id="w2">hunting</span><span data-hf-id="hf-r8z2" class="w" id="w3">shouldn&rsquo;t</span><br data-hf-id="hf-x5px" />
+      <span data-hf-id="hf-vtr3" class="w" id="w4">feel</span><span data-hf-id="hf-gpsh" class="w" id="w5">like</span>
+      <span data-hf-id="hf-lmyg" class="w" id="guess">guessing.<span data-hf-id="hf-bz1m" id="underline"></span></span>
+    </h1>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#blob", { scale: 0.8, opacity: 0.6 }, { scale: 1, opacity: 1, duration: 1.2, ease: "power3.out" }, 0);
+    tl.fromTo("#mark", { scale: 0.75, rotation: -12 }, { scale: 1, rotation: 0, duration: 0.6, ease: "back.out(2.2)" }, 0.1);
+    tl.fromTo(["#w1", "#w2", "#w3", "#w4", "#w5", "#guess"], { y: 60, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "power4.out", stagger: 0.16 }, 0.45);
+    tl.fromTo("#underline", { scaleX: 0, transformOrigin: "0% 50%" }, { scaleX: 1, duration: 0.45, ease: "power3.out" }, 1.75);
+    tl.to("#guess", { rotation: -3, duration: 0.12, yoyo: true, repeat: 3, ease: "sine.inOut" }, 2.25);
+    // Exit
+    tl.to(["#headline", "#mark"], { y: -40, opacity: 0, duration: 0.25, ease: "power2.in" }, 3.12);
+    window.__timelines["intro"] = tl;
+  </script>
+</template>

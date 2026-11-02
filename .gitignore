@@ -25,3 +25,9 @@ CLAUDE.md
 Thumbs.db
 *.log
 npm-debug.log*
+
+# Video project: renders, caches and agent notes stay local
+video/renders/
+video/.hyperframes/
+video/node_modules/
+AGENTS.md
