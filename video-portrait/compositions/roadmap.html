@@ -1,0 +1,151 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      background: #eef2ef;
+      overflow: hidden;
+      font-family: Inter, sans-serif;
+    }
+    #cam {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+    }
+    #frame {
+      position: absolute;
+      left: 160px;
+      top: 90px;
+      width: 1600px;
+      height: 900px;
+      border-radius: 28px;
+      overflow: hidden;
+      background: #fbfaf8;
+      box-shadow: 0 40px 120px -30px rgba(22, 24, 29, 0.35), 0 0 0 1px rgba(22, 24, 29, 0.06);
+    }
+    #shot {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1600px;
+      height: 900px;
+    }
+    #hours-box {
+      position: absolute;
+      left: 604px;
+      top: 179px;
+      width: 116px;
+      height: 30px;
+      opacity: 0;
+      border-radius: 10px;
+      border: 3px solid #f2c14e;
+      box-shadow: 0 0 0 6px rgba(242, 193, 78, 0.25);
+    }
+    #check {
+      position: absolute;
+      left: 520px;
+      top: 293px;
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      background: #1f5f4a;
+      z-index: 5;
+      opacity: 0;
+    }
+    #check svg {
+      position: absolute;
+      inset: 4px;
+    }
+    .p {
+      position: absolute;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      left: 531px;
+      top: 304px;
+      opacity: 0;
+    }
+    #flood {
+      position: absolute;
+      left: 366px;
+      top: 463px;
+      width: 17px;
+      height: 17px;
+      border-radius: 4px;
+      background: #1f5f4a;
+      opacity: 0;
+      z-index: 10;
+    }
+    #words {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 960px;
+      text-align: center;
+      font-size: 84px;
+      font-weight: 700;
+      letter-spacing: -3px;
+      color: #16181d;
+      line-height: 1.2;
+    }
+    #words .g {
+      color: #1f5f4a;
+    }
+  </style>
+  <div id="root" data-composition-id="roadmap" data-width="1080" data-height="1920">
+    <div id="cam" class="clip" data-start="0" data-duration="8.2">
+      <div id="frame">
+        <img id="shot" src="assets/screens/06-roadmap.png" alt="" />
+        <div id="hours-box"></div>
+        <div id="check">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path id="tickpath" d="M5 12l5 5L20 7" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </div>
+        <div id="p1" class="p" style="background: #1f5f4a"></div>
+        <div id="p2" class="p" style="background: #f2c14e"></div>
+        <div id="p3" class="p" style="background: #3f9b7a"></div>
+        <div id="p4" class="p" style="background: #16181d"></div>
+        <div id="p5" class="p" style="background: #f2c14e"></div>
+        <div id="p6" class="p" style="background: #1f5f4a"></div>
+        <div id="p7" class="p" style="background: #3f9b7a"></div>
+        <div id="p8" class="p" style="background: #f2c14e"></div>
+      </div>
+    </div>
+    <div id="flood" class="clip" data-start="0" data-duration="8.2"></div>
+    <div id="words" class="clip" data-start="0" data-duration="8.2">
+      <div id="wd1">Every step.</div>
+      <div id="wd2">Every resource.</div>
+      <div id="wd3" class="g">Every hour.</div>
+    </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    // A stage point P lands at screen (540, cy).
+    const at = (px, py, s, cy = 740) => ({ x: 540 - s * px, y: cy - s * py, scale: s });
+    gsap.set("#cam", { transformOrigin: "0 0" });
+
+    // Arrive from the zoom-through, settling on the progress card.
+    tl.fromTo("#cam", { ...at(950, 270, 2.7), opacity: 0, filter: "blur(16px)" }, { ...at(950, 270, 1.8), opacity: 1, filter: "blur(0px)", duration: 0.8, ease: "expo.out" }, 0);
+    tl.fromTo("#hours-box", { opacity: 0, scale: 1.08, filter: "blur(6px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.45, ease: "expo.out" }, 0.95);
+    tl.to("#hours-box", { opacity: 0, duration: 0.2, ease: "power2.in" }, 2.45);
+    // Glide down to step 1 and tick it.
+    tl.to("#cam", { ...at(945, 430, 1.8), duration: 1.05, ease: "power2.inOut" }, 2.4);
+    tl.fromTo("#check", { scale: 0.4, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.4, ease: "expo.out", immediateRender: false }, 3.6);
+    tl.fromTo("#tickpath", { strokeDasharray: 30, strokeDashoffset: 30 }, { strokeDashoffset: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 3.72);
+    const angles = [0, 45, 90, 135, 180, 225, 270, 315];
+    angles.forEach((a, i) => {
+      const r = (a * Math.PI) / 180;
+      tl.fromTo(`#p${i + 1}`, { x: 0, y: 0, scale: 1, opacity: 1 }, { x: Math.cos(r) * 46, y: Math.sin(r) * 46, scale: 0, opacity: 0, duration: 0.6, ease: "expo.out", immediateRender: false }, 3.65);
+    });
+    // Pull back: the screen sits in the top half, the three beats land under it.
+    tl.to("#cam", { ...at(960, 540, 0.62, 560), duration: 1.0, ease: "power2.inOut" }, 4.45);
+    tl.fromTo(["#wd1", "#wd2", "#wd3"], { opacity: 0, filter: "blur(10px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power2.out", stagger: 0.55 }, 5.15);
+    // The green checkbox grows into the next scene's green world.
+    tl.to("#tickpath", { opacity: 0, duration: 0.15 }, 7.3);
+    tl.to("#words", { opacity: 0, filter: "blur(10px)", duration: 0.25, ease: "power2.in" }, 7.3);
+    tl.set("#flood", { opacity: 1 }, 7.35);
+    tl.to("#flood", { scale: 300, borderRadius: "0px", duration: 0.85, ease: "power3.inOut" }, 7.35);
+    window.__timelines["roadmap"] = tl;
+  </script>
+</template>

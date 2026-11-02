@@ -34,3 +34,8 @@ video/node_modules/
 AGENTS.md
 video/.thumbnails/
 video/.waveform-cache/
+video-portrait/renders/
+video-portrait/.hyperframes/
+video-portrait/node_modules/
+video-portrait/.thumbnails/
+video-portrait/.waveform-cache/

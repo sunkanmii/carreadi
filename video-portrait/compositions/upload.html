@@ -1,0 +1,190 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      background: #eef2ef;
+      overflow: hidden;
+      font-family: Inter, sans-serif;
+    }
+    #cam {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+    }
+    #frame {
+      position: absolute;
+      left: 160px;
+      top: 90px;
+      width: 1600px;
+      height: 1500px;
+      border-radius: 28px;
+      overflow: hidden;
+      background: #fbfaf8;
+      box-shadow: 0 40px 120px -30px rgba(22, 24, 29, 0.35), 0 0 0 1px rgba(22, 24, 29, 0.06);
+    }
+    .shot {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1600px;
+      height: 900px;
+    }
+    #s-match {
+      opacity: 0;
+    }
+    #ring {
+      position: absolute;
+      left: 720px;
+      top: 490px;
+      width: 160px;
+      height: 50px;
+      border-radius: 25px;
+      border: 4px solid #1f5f4a;
+      opacity: 0;
+    }
+    #consent {
+      position: absolute;
+      left: 592px;
+      top: 779px;
+      width: 436px;
+      height: 38px;
+      padding: 2px 0 0 3px;
+      background: #fff;
+      color: #6b6f78;
+      font-size: 10.83px;
+      line-height: 16.67px;
+    }
+    #consent u {
+      text-underline-offset: 2px;
+    }
+    #cv {
+      position: absolute;
+      left: 660px;
+      top: 250px;
+      width: 230px;
+      height: 290px;
+      border-radius: 18px;
+      background: #fff;
+      box-shadow: 0 30px 70px -20px rgba(22, 24, 29, 0.4);
+      padding: 28px 24px;
+    }
+    #cv .ln {
+      height: 12px;
+      border-radius: 6px;
+      background: #e7e5e1;
+      margin-bottom: 14px;
+    }
+    #cv .tag {
+      position: absolute;
+      left: 24px;
+      bottom: 22px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: #1f5f4a;
+      color: #fff;
+      font-size: 20px;
+      font-weight: 600;
+    }
+    #count {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 230px;
+      width: max-content;
+      margin: 0 auto;
+      padding: 22px 40px;
+      border-radius: 999px;
+      background: #1f5f4a;
+      color: #fff;
+      font-size: 54px;
+      font-weight: 700;
+      letter-spacing: -1.5px;
+      box-shadow: 0 20px 50px -15px rgba(31, 95, 74, 0.6);
+    }
+    .cap {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 1180px;
+      text-align: center;
+    }
+    .cap span {
+      display: inline-block;
+      padding: 20px 40px;
+      border-radius: 999px;
+      background: #16181d;
+      color: #fff;
+      font-size: 46px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+    }
+  </style>
+  <div id="root" data-composition-id="upload" data-width="1080" data-height="1920">
+    <div id="cam" class="clip" data-start="0" data-duration="8.2">
+      <div id="frame">
+        <img id="s-home" class="shot" src="assets/screens/01-home.png" alt="" />
+        <img id="s-match" class="shot" src="assets/screens/02-matches.png" alt="" />
+        <div id="ring"></div>
+        <div id="consent">Send my CV text to our AI for this analysis. It isn&rsquo;t stored on our servers. <u>Details</u></div>
+      </div>
+    </div>
+    <div id="cv" class="clip" data-start="0" data-duration="8.2">
+      <div class="ln" style="width: 70%; background: #16181d; height: 16px"></div>
+      <div class="ln" style="width: 45%"></div>
+      <div class="ln"></div>
+      <div class="ln" style="width: 85%"></div>
+      <div class="ln"></div>
+      <div class="ln" style="width: 60%"></div>
+      <span class="tag" data-layout-ignore>CV.pdf</span>
+    </div>
+    <div id="count" class="clip" data-start="0" data-duration="8.2">0+ live jobs</div>
+    <div id="cap1" class="cap clip" data-start="0" data-duration="8.2"><span>Drop in your CV</span></div>
+    <div id="cap2" class="cap clip" data-start="0" data-duration="8.2"><span>Matched against live jobs</span></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    // Camera: a stage point P lands at screen (540, 740), the middle of the band the app leaves clear.
+    const at = (px, py, s) => ({ x: 540 - s * px, y: 740 - s * py, scale: s });
+    gsap.set("#cam", { transformOrigin: "0 0" });
+
+    // Arrive from the intro's zoom-through, the whole page small, then push in on the upload card.
+    tl.fromTo("#cam", { ...at(960, 560, 0.9), opacity: 0, filter: "blur(14px)" }, { ...at(960, 540, 0.64), opacity: 1, filter: "blur(0px)", duration: 0.75, ease: "expo.out" }, 0);
+    tl.to("#cam", { ...at(960, 605, 1.6), duration: 1.1, ease: "power2.inOut" }, 0.55);
+    // The CV arcs down onto the Upload button (screen centre).
+    tl.fromTo("#cv", { x: 300, y: -300, rotation: 18, opacity: 0, filter: "blur(10px)" }, { x: 0, y: 0, rotation: 6, opacity: 1, filter: "blur(0px)", duration: 0.7, ease: "expo.out" }, 0.4);
+    tl.to("#cv", { x: -235, y: 345, rotation: 0, scale: 0.42, duration: 0.8, ease: "power3.inOut" }, 1.15);
+    tl.to("#cv", { scale: 0.18, opacity: 0, duration: 0.18, ease: "power3.in" }, 1.95);
+    tl.fromTo("#ring", { scale: 0.85, opacity: 0 }, { scale: 1.15, opacity: 1, duration: 0.3, ease: "expo.out" }, 2.0);
+    tl.to("#ring", { opacity: 0, duration: 0.25, ease: "power2.in" }, 2.35);
+    tl.fromTo("#cap1", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power2.out" }, 0.35);
+    tl.to("#cap1", { opacity: 0, filter: "blur(8px)", duration: 0.18, ease: "power2.in" }, 2.45);
+
+    // Zoom through the Upload button into the live matches.
+    tl.to("#cam", { ...at(960, 605, 4.6), filter: "blur(16px)", duration: 0.38, ease: "power3.in" }, 2.72);
+    tl.set("#s-match", { opacity: 1 }, 3.1);
+    tl.set("#s-home", { opacity: 0 }, 3.1);
+    tl.fromTo("#cam", { ...at(960, 660, 3.0), filter: "blur(16px)" }, { ...at(960, 660, 2.1), filter: "blur(0px)", duration: 0.85, ease: "expo.out", immediateRender: false }, 3.1);
+    // One move down the list, then hold.
+    tl.to("#cam", { ...at(960, 760, 2.15), duration: 1.2, ease: "power2.inOut" }, 5.4);
+
+    tl.fromTo("#count", { opacity: 0, scale: 0.9, filter: "blur(10px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "expo.out" }, 3.55);
+    const n = { v: 0 };
+    tl.to(n, {
+      v: 2900,
+      duration: 1.8,
+      ease: "expo.out",
+      onUpdate: () => {
+        document.querySelector("#count").textContent = `${Math.round(n.v).toLocaleString("en-US")}+ live jobs`;
+      },
+    }, 3.6);
+    tl.fromTo("#cap2", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power2.out" }, 3.5);
+
+    // Whip up into the results.
+    tl.to("#cam", { y: "-=900", filter: "blur(18px)", opacity: 0, duration: 0.32, ease: "power3.in" }, 7.88);
+    tl.to(["#count", "#cap2"], { y: -80, opacity: 0, filter: "blur(8px)", duration: 0.25, ease: "power3.in" }, 7.88);
+    window.__timelines["upload"] = tl;
+  </script>
+</template>

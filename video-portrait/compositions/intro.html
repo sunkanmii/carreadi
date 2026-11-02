@@ -1,0 +1,87 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      background: #fbfaf8;
+      overflow: hidden;
+      font-family: Inter, sans-serif;
+    }
+    #blob {
+      position: absolute;
+      left: 420px;
+      top: -260px;
+      width: 960px;
+      height: 960px;
+      border-radius: 50%;
+      background: #e6f0ec;
+    }
+    #mark {
+      position: absolute;
+      left: 472px;
+      top: 400px;
+      width: 136px;
+      height: 136px;
+    }
+    #headline {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 620px;
+      text-align: center;
+      font-size: 120px;
+      font-weight: 700;
+      letter-spacing: -4px;
+      color: #16181d;
+      line-height: 1.12;
+    }
+    .w {
+      display: inline-block;
+      margin: 0 14px;
+    }
+    #guess {
+      position: relative;
+      display: inline-block;
+      color: #1f5f4a;
+    }
+    #underline {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -6px;
+      height: 12px;
+      border-radius: 6px;
+      background: #f2c14e;
+    }
+  </style>
+  <div id="root" data-composition-id="intro" data-width="1080" data-height="1920">
+    <div id="blob" class="clip" data-start="0" data-duration="3.4"></div>
+    <svg id="mark" class="clip" data-start="0" data-duration="3.4" viewBox="0 0 64 64">
+      <rect width="64" height="64" rx="15" fill="#1f5f4a" />
+      <path d="M14 47 H26 V36 H37 V25" fill="none" stroke="#fff" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" />
+      <circle cx="46" cy="18" r="6.5" fill="#f2c14e" />
+    </svg>
+    <h1 id="headline" class="clip" data-start="0" data-duration="3.4">
+      <span class="w" id="w1">Job</span><span class="w" id="w2">hunting</span><br />
+      <span class="w" id="w3">shouldn&rsquo;t</span><span class="w" id="w4">feel</span><br />
+      <span class="w" id="w5">like</span>
+      <span class="w" id="guess">guessing.<span id="underline"></span></span>
+    </h1>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    // The first line is already on screen at 0 s: the thumbnail is the hook, not just a logo.
+    tl.fromTo("#blob", { scale: 0.85, opacity: 0.7 }, { scale: 1, opacity: 1, duration: 1.6, ease: "expo.out" }, 0);
+    tl.fromTo("#mark", { scale: 0.82, filter: "blur(4px)" }, { scale: 1, filter: "blur(0px)", duration: 0.9, ease: "expo.out" }, 0.05);
+    tl.fromTo(
+      ["#w3", "#w4", "#w5", "#guess"],
+      { opacity: 0, filter: "blur(8px)" },
+      { opacity: 1, filter: "blur(0px)", duration: 0.22, ease: "power2.out", stagger: 0.14 },
+      0.7,
+    );
+    tl.fromTo("#underline", { scaleX: 0, transformOrigin: "0% 50%" }, { scaleX: 1, duration: 0.7, ease: "expo.out" }, 1.4);
+    // Zoom through into the product.
+    tl.to("#root", { scale: 1.18, filter: "blur(14px)", opacity: 0, duration: 0.38, ease: "power3.in" }, 3.02);
+    window.__timelines["intro"] = tl;
+  </script>
+</template>
