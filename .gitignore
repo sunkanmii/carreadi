@@ -1,0 +1,27 @@
+# Dependencies and build output
+node_modules
+.next
+next-env.d.ts
+/dist/
+.vinext/
+.cloudflare/
+.wrangler/
+tsconfig.tsbuildinfo
+
+# Secrets: never commit. Production values live in Cloudflare (Variables and Secrets).
+.env*
+.dev.vars*
+!.dev.vars.example
+*.local.txt
+
+# AI assistant / editor settings and local tooling
+.claude/
+CLAUDE.md
+.vscode/
+.idea/
+
+# OS and logs
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*

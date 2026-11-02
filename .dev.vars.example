@@ -1,0 +1,15 @@
+# Copy to .dev.vars for local development. Never commit .dev.vars.
+# In production, set these in Cloudflare: Workers → carreadi → Settings → Variables and Secrets (type: Secret).
+
+# Required
+QUOTA_SALT=any-long-random-string
+ADMIN_TOKEN=at-least-16-random-characters
+
+# Payments (Bachs). Checkout can't run locally: Bachs needs a public return URL.
+# BACHS_API_KEY=sk_sandbox_...
+# BACHS_WEBHOOK_SECRET=...
+# BACHS_ORGANIZATION_ID=acct_...
+
+# Optional analytics
+# POSTHOG_KEY=phc_...
+# POSTHOG_HOST=https://eu.i.posthog.com

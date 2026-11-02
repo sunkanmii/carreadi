@@ -1,0 +1,10 @@
+# Consistent line endings everywhere (Cloudflare builds run on Linux).
+* text=auto eol=lf
+
+# Binary files: never touch their bytes.
+*.pdf binary
+*.docx binary
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff2 binary
