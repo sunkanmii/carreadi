@@ -35,7 +35,7 @@
     </style>
   </head>
   <body>
-    <div data-hf-id="hf-kv97" id="root" data-composition-id="main" data-start="0" data-duration="34" data-width="1920" data-height="1080">
+    <div data-hf-id="hf-kv97" id="root" data-motion-blur="on" data-composition-id="main" data-start="0" data-duration="34" data-width="1920" data-height="1080">
       <!-- Scenes -->
       <div data-hf-id="hf-zc8w" id="intro" data-composition-id="intro" data-composition-src="compositions/intro.html" data-track-kind="graphics" data-start="0" data-duration="3.4" data-track-index="1" data-width="1920" data-height="1080"></div>
       <div data-hf-id="hf-fc3t" id="upload" data-composition-id="upload" data-composition-src="compositions/upload.html" data-track-kind="graphics" data-start="3.4" data-duration="8.2" data-track-index="1" data-width="1920" data-height="1080"></div>
@@ -44,25 +44,21 @@
       <div data-hf-id="hf-ohph" id="outro" data-composition-id="outro" data-composition-src="compositions/outro.html" data-track-kind="graphics" data-start="25.6" data-duration="8.4" data-track-index="1" data-width="1920" data-height="1080"></div>
 
       <!-- Voice-over (ElevenLabs, Charlotte) -->
-      <audio data-hf-id="hf-j5s1" id="vo1" class="clip" src="assets/audio/vo1.mp3" data-start="0.45" data-duration="2.6" data-track-index="2" data-volume="1"></audio>
-      <audio data-hf-id="hf-xcfd" id="vo2" class="clip" src="assets/audio/vo2.mp3" data-start="3.6" data-duration="7.7" data-track-index="2" data-volume="1"></audio>
-      <audio data-hf-id="hf-d951" id="vo3" class="clip" src="assets/audio/vo3.mp3" data-start="11.75" data-duration="5.55" data-track-index="2" data-volume="1"></audio>
-      <audio data-hf-id="hf-g3ha" id="vo4" class="clip" src="assets/audio/vo4.mp3" data-start="17.6" data-duration="7.7" data-track-index="2" data-volume="1"></audio>
-      <audio data-hf-id="hf-x130" id="vo5" class="clip" src="assets/audio/vo5.mp3" data-start="25.9" data-duration="7.3" data-track-index="2" data-volume="1"></audio>
+      <audio data-hf-id="hf-j5s1" id="vo1" class="clip" src="assets/audio/vo1.mp3" data-start="0.45" data-duration="2.6" data-track-index="2" data-volume="2.483133"></audio>
+      <audio data-hf-id="hf-xcfd" id="vo2" class="clip" src="assets/audio/vo2.mp3" data-start="3.6" data-duration="7.7" data-track-index="2" data-volume="1.380384"></audio>
+      <audio data-hf-id="hf-d951" id="vo3" class="clip" src="assets/audio/vo3.mp3" data-start="11.75" data-duration="5.55" data-track-index="2" data-volume="1.905461"></audio>
+      <audio data-hf-id="hf-g3ha" id="vo4" class="clip" src="assets/audio/vo4.mp3" data-start="17.6" data-duration="7.7" data-track-index="2" data-volume="1.548817"></audio>
+      <audio data-hf-id="hf-x130" id="vo5" class="clip" src="assets/audio/vo5.mp3" data-start="25.9" data-duration="7.3" data-track-index="2" data-volume="1.905461"></audio>
 
-      <!-- Music bed, kept well under the voice -->
-      <audio data-hf-id="hf-uam6" id="music" class="clip" src="assets/audio/music.mp3" data-start="0" data-duration="34" data-track-index="3" data-volume="0.3" data-fade-in="0.4" data-fade-out="1.4"></audio>
+      <!-- Music bed: well under the voice -->
+      <audio id="music" class="clip" src="assets/audio/music.mp3" data-start="0" data-duration="34" data-track-index="3" data-volume="0.14" data-fade-in="0.4" data-fade-out="1.6"></audio>
 
-      <!-- Sound on visible actions -->
-      <audio data-hf-id="hf-t8wp" id="sfx-whoosh-1" class="clip" src="assets/audio/whoosh.mp3" data-start="3.25" data-duration="0.8" data-track-index="4" data-volume="0.55"></audio>
-      <audio data-hf-id="hf-apih" id="sfx-tick-1" class="clip" src="assets/audio/tick.mp3" data-start="5.35" data-duration="0.5" data-track-index="4" data-volume="0.8"></audio>
-      <audio data-hf-id="hf-01tl" id="sfx-whoosh-2" class="clip" src="assets/audio/whoosh.mp3" data-start="6.35" data-duration="0.8" data-track-index="4" data-volume="0.45"></audio>
-      <audio data-hf-id="hf-dt0g" id="sfx-whoosh-3" class="clip" src="assets/audio/whoosh.mp3" data-start="11.45" data-duration="0.8" data-track-index="4" data-volume="0.55"></audio>
-      <audio data-hf-id="hf-81vj" id="sfx-whoosh-4" class="clip" src="assets/audio/whoosh.mp3" data-start="17.25" data-duration="0.8" data-track-index="4" data-volume="0.55"></audio>
-      <audio data-hf-id="hf-e7i1" id="sfx-tick-2" class="clip" src="assets/audio/tick.mp3" data-start="21.0" data-duration="0.5" data-track-index="4" data-volume="0.85"></audio>
-      <audio data-hf-id="hf-ku5m" id="sfx-chime" class="clip" src="assets/audio/chime.mp3" data-start="21.15" data-duration="1" data-track-index="5" data-volume="0.6"></audio>
-      <audio data-hf-id="hf-dgul" id="sfx-whoosh-5" class="clip" src="assets/audio/whoosh.mp3" data-start="25.45" data-duration="0.8" data-track-index="4" data-volume="0.55"></audio>
-      <audio data-hf-id="hf-s80t" id="sfx-hit" class="clip" src="assets/audio/hit.mp3" data-start="25.95" data-duration="2" data-track-index="6" data-volume="0.7"></audio>
+      <!-- Whooshes only on transitions, three takes rotated -->
+      <audio id="sfx-w1" class="clip" src="assets/audio/whoosh3.mp3" data-start="3.0" data-duration="1.2" data-track-index="4" data-volume="0.151"></audio>
+      <audio id="sfx-w2" class="clip" src="assets/audio/whoosh2.mp3" data-start="6.15" data-duration="0.6" data-track-index="4" data-volume="0.24"></audio>
+      <audio id="sfx-w3" class="clip" src="assets/audio/whoosh1.mp3" data-start="11.3" data-duration="0.9" data-track-index="4" data-volume="0.14"></audio>
+      <audio id="sfx-w4" class="clip" src="assets/audio/whoosh2.mp3" data-start="17.15" data-duration="0.6" data-track-index="4" data-volume="0.24"></audio>
+      <audio id="sfx-w5" class="clip" src="assets/audio/whoosh3.mp3" data-start="24.75" data-duration="1.2" data-track-index="4" data-volume="0.151"></audio>
     </div>
     <script>
       window.__timelines["main"] = gsap.timeline({ paused: true });

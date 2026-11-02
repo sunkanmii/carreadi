@@ -8,5 +8,5 @@ Checked with `hyperframes check` (0 errors) and snapshots at 0, 1.6, 4.6, 5.2, 8
 - **Roadmap (17.4–25.6 s):** hours highlight, step 1 ticked with burst + chime at 21.0 s, "Every step / resource / hour" beside the screen. Fixed: stray burst dot before the tick, oversized hours box, screen touching the safe margin. ✓
 - **Outro (25.6–34 s):** logo hit, headline, "Try it free" + carreadi.naijabukana.com held to the end. ✓
 
-Audio: ElevenLabs voice (Charlotte, eleven_v4) at full level, music at 0.3 with fades, SFX on visible actions only.
+Audio: ElevenLabs voice (Charlotte, eleven_v4) levelled to −16 LUFS; music at −31 LUFS (≈15 dB under the voice); three ElevenLabs whoosh takes rotated on transitions only, at −27 LUFS. Mix measured at −17.4 LUFS, peak −1.0 dBFS (measured, not listened to).
 Screens are real captures of the live site; the CV and its result are demo data.

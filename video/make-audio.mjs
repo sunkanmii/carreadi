@@ -21,10 +21,10 @@ const LINES = {
 };
 
 const SFX = {
-  whoosh: { text: "Quick soft airy whoosh transition, clean modern UI motion", duration_seconds: 0.8 },
-  tick: { text: "Crisp soft UI checkbox click, satisfying, short", duration_seconds: 0.5 },
-  chime: { text: "Bright short success chime, positive app notification, two notes", duration_seconds: 1.0 },
-  hit: { text: "Warm cinematic logo reveal hit with soft shimmer tail, modern tech brand", duration_seconds: 2.0 },
+  // Three different whoosh takes, rotated so the same sound never repeats back to back.
+  whoosh1: { text: "Smooth airy cinematic whoosh, soft swoosh passing by, clean high-end sound design, no distortion, no click", duration_seconds: 0.9 },
+  whoosh2: { text: "Fast light swish whoosh for a quick camera zoom, airy and crisp, subtle, polished UI motion sound", duration_seconds: 0.6 },
+  whoosh3: { text: "Deep smooth transition whoosh with soft low swell, cinematic, gentle, premium product video sound design", duration_seconds: 1.2 },
 };
 
 async function save(stream, file) {
@@ -60,5 +60,5 @@ if ((!only || only === "music") && !skip("music.mp3"))
 if (!only || only === "sfx")
   for (const [id, p] of Object.entries(SFX)) {
     if (skip(`${id}.mp3`)) continue;
-    await save(await client.textToSoundEffects.convert({ text: p.text, durationSeconds: p.duration_seconds, promptInfluence: 0.6 }), `${id}.mp3`);
+    await save(await client.textToSoundEffects.convert({ text: p.text, durationSeconds: p.duration_seconds, promptInfluence: 0.75 }), `${id}.mp3`);
   }
