@@ -246,7 +246,7 @@ export default function Analyzer() {
           <label className="flex items-start gap-2.5 text-xs leading-relaxed text-muted">
             <input type="checkbox" className="mt-0.5 size-4 accent-[var(--color-accent)]" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
             <span>
-              Send my résumé text to Cloudflare Workers AI for this analysis. It isn&rsquo;t stored on our servers.{" "}
+              Send my CV text to our AI for this analysis. It isn&rsquo;t stored on our servers.{" "}
               <Link href="/privacy" className="underline">Details</Link>
             </span>
           </label>
