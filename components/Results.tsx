@@ -53,7 +53,7 @@ export default function Results() {
           {data.job ? `${data.job.title} · ${data.job.company}` : a.roleTitle}
         </motion.h1>
         <motion.p {...rise} transition={{ ...spring, delay: 0.1 }} className="mt-3 text-[15px] leading-relaxed text-muted">
-          {a.preview ? "Here’s what your CV already proves for this job. What’s missing, and your plan to close it, unlock with a pass." : a.summary}
+          {a.preview ? "Here’s what your CV already proves for this job, and one thing holding you back. Every other gap, and your plan to close them, unlock with a pass." : a.summary}
         </motion.p>
 
         <AnimatePresence mode="wait">

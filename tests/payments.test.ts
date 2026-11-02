@@ -61,12 +61,13 @@ describe("free preview", () => {
     roleTitle: "R", summary: "S", demonstratedSkills: ["SQL"], model: "m", createdAt: "",
     findings: [f("SQL", "demonstrated", 3), f("Go", "missing", 2), f("K8s", "missing", 1), f("AWS", "not_shown", 1), f("Visa", "eligibility", 1)],
   };
-  it("keeps only strengths and removes every gap and the summary", () => {
+  it("keeps strengths and one workable gap without its steps, and removes the rest", () => {
     const p = toPreview(a);
-    expect(p.findings.map((x) => x.requirement)).toEqual(["SQL"]);
+    expect(p.findings.map((x) => x.requirement)).toEqual(["K8s", "SQL"]);
+    expect(p.findings[0]).toMatchObject({ action: "", deliverable: "", resource: { name: "", url: "" }, estimatedHours: 0 });
     expect(p.summary).toBe("");
-    expect(p.preview).toEqual({ locked: 4 });
-    expect(JSON.stringify(p)).not.toMatch(/"(Go|K8s|AWS|Visa)"/);
+    expect(p.preview).toEqual({ locked: 3 });
+    expect(JSON.stringify(p)).not.toMatch(/"(Go|AWS|Visa)"/);
   });
   it("leaves a free preview with an empty roadmap", async () => {
     const { buildRoadmap } = await import("@/lib/roadmap");
