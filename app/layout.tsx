@@ -3,6 +3,7 @@ import Link from "next/link";
 import Analytics from "@/components/Analytics";
 import MobileNav from "@/components/MobileNav";
 import PassBadge from "@/components/PassBadge";
+import StaleReload from "@/components/StaleReload";
 import { SUPPORT_EMAIL } from "@/lib/contact";
 import "./globals.css";
 
@@ -58,6 +59,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <MobileNav />
         </header>
         <Analytics />
+        <StaleReload />
         <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-5">{children}</main>
         <footer className="mx-auto flex w-full max-w-3xl gap-5 px-5 py-8 text-xs text-muted">
           <Link href="/plans" className="hover:text-ink">Pricing</Link>

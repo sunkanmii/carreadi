@@ -1,5 +1,6 @@
 import Analyzer from "@/components/Analyzer";
 import CheckedCounter from "@/components/CheckedCounter";
+import WelcomeBack from "@/components/WelcomeBack";
 
 export default function Home() {
   return (
@@ -14,6 +15,7 @@ export default function Home() {
         </p>
         <CheckedCounter />
       </div>
+      <WelcomeBack />
       <Analyzer />
     </div>
   );
