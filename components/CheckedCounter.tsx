@@ -1,4 +1,7 @@
 "use client";
+import { clientLocale } from "@/lib/client/locale";
+
+import { useText } from "@/lib/useText";
 
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
@@ -7,6 +10,7 @@ import { useEffect, useState } from "react";
 const SHOW_FROM = 500;
 
 export default function CheckedCounter() {
+  const tr = useText();
   const [n, setN] = useState(0);
   useEffect(() => {
     fetch("/api/stats")
@@ -17,7 +21,6 @@ export default function CheckedCounter() {
   if (n < SHOW_FROM) return null;
   return (
     <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="mt-4 text-sm text-muted">
-      <span className="font-semibold text-ink">{n.toLocaleString()}</span> CVs checked so far
-    </motion.p>
+      <span className="font-semibold text-ink">{n.toLocaleString(clientLocale())}</span> {tr(" CVs checked so far")}</motion.p>
   );
 }

@@ -1,4 +1,5 @@
 "use client";
+import { useText, displayValue } from "@/lib/useText";
 
 import { AnimatePresence, motion, useSpring, useTransform } from "motion/react";
 import { useEffect, useState } from "react";
@@ -11,12 +12,9 @@ const PACES = [3, 5, 10, 20, 40];
 // Full-time focus. The nudge only promises what this pace actually gets them to.
 const LOCK_IN_PACE = 40;
 
-function weeksText(hours: number, pace: number) {
-  const w = Math.ceil(hours / pace);
-  return w <= 1 ? "within a week" : `about ${w} weeks`;
-}
-
-export default function RoadmapView({ roadmap, onChange }: { roadmap: Roadmap; onChange: (r: Roadmap) => void }) {
+export default function RoadmapView({ roadmap, onChange, locale = "en" }: { roadmap: Roadmap; onChange: (r: Roadmap) => void; locale?: string }) {
+  const tr = useText();
+  const weeksText = (hours: number, pace: number) => Math.ceil(hours / pace) <= 1 ? tr("within a week") : tr("about {weeks} weeks", { weeks: Math.ceil(hours / pace) });
   const [editing, setEditing] = useState<string | null>(null);
   const [burst, setBurst] = useState<string | null>(null);
   const total = roadmap.tasks.length;
@@ -43,7 +41,7 @@ export default function RoadmapView({ roadmap, onChange }: { roadmap: Roadmap; o
     const id = `c-${Date.now().toString(36)}`;
     onChange({
       ...roadmap,
-      tasks: [...roadmap.tasks, { id, title: "New task", requirement: "Custom", deliverable: "What you'll be able to show", resource: { name: "", url: "" }, priority: 3, done: false }],
+      tasks: [...roadmap.tasks, { id, title: tr("New task"), requirement: "Custom", deliverable: tr("What you'll be able to show"), resource: { name: "", url: "" }, priority: 3, done: false }],
     });
     track("task_added");
     setEditing(id);
@@ -52,8 +50,8 @@ export default function RoadmapView({ roadmap, onChange }: { roadmap: Roadmap; o
   if (!total)
     return (
       <div className="py-8 text-center">
-        <p className="text-sm text-muted">No gaps found for this job. Add your own tasks.</p>
-        <button className="btn-ghost mt-4" onClick={add}>+ Add task</button>
+        <p className="text-sm text-muted">{tr("No gaps found for this job. Add your own tasks.")}</p>
+        <button className="btn-ghost mt-4" onClick={add}>{tr("+ Add task")}</button>
       </div>
     );
 
@@ -68,7 +66,7 @@ export default function RoadmapView({ roadmap, onChange }: { roadmap: Roadmap; o
         <ProgressRing value={done / total} />
         <div className="min-w-0">
           <p className="text-2xl font-semibold tracking-tight tabular-nums">
-            <Counter value={done} /> <span className="text-base font-normal text-muted">of {total} done</span>
+            <Counter value={done} /> <span className="text-base font-normal text-muted">{tr("of {value0} done", { value0: displayValue(total) })}</span>
           </p>
           <AnimatePresence mode="wait">
             <motion.p
@@ -79,20 +77,20 @@ export default function RoadmapView({ roadmap, onChange }: { roadmap: Roadmap; o
               transition={{ duration: 0.2 }}
               className="mt-0.5 text-sm text-muted"
             >
-              {allDone ? "Every gap closed. Time to apply." : done === 0 ? "Start with the first step below." : `${total - done} to go. Keep the streak.`}
+              {allDone ? tr("Every gap closed. Time to apply.") : done === 0 ? tr("Start with the first step below.") : tr("{value0} to go. Keep the streak.", { value0: displayValue(total - done) })}
             </motion.p>
           </AnimatePresence>
           {hoursLeft > 0 && (
             <p className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
-              <span className="font-medium">≈ <Counter value={hoursLeft} /> hours left</span>
-              <span className="text-muted">· {weeksText(hoursLeft, pace)} at</span>
+              <span className="font-medium">≈ <Counter value={hoursLeft} /> {tr(" hours left")}</span>
+              <span className="text-muted">{tr("· {value0} at", { value0: displayValue(weeksText(hoursLeft, pace)) })}</span>
               <select
-                aria-label="Hours per week"
+                aria-label={tr("Hours per week")}
                 className="rounded-lg border border-line bg-white px-1.5 py-0.5 text-sm"
                 value={pace}
                 onChange={(e) => { onChange({ ...roadmap, pace: Number(e.target.value) }); track("pace_changed", { hours_per_week: Number(e.target.value) }); }}
               >
-                {PACES.map((p) => <option key={p} value={p}>{p === LOCK_IN_PACE ? `${p} h/week (full-time)` : `${p} h/week`}</option>)}
+                {PACES.map((p) => <option key={p} value={p}>{p === LOCK_IN_PACE ? tr("{value0} h/week (full-time)", { value0: displayValue(p) }) : tr("{value0} h/week", { value0: displayValue(p) })}</option>)}
               </select>
             </p>
           )}
@@ -105,10 +103,8 @@ export default function RoadmapView({ roadmap, onChange }: { roadmap: Roadmap; o
                 exit={{ opacity: 0, height: 0 }}
                 whileHover={{ x: 2 }}
                 onClick={() => { onChange({ ...roadmap, pace: LOCK_IN_PACE }); track("pace_changed", { hours_per_week: LOCK_IN_PACE, from: "lock_in" }); }}
-                className="mt-2 block text-left text-xs font-medium text-accent"
-              >
-                🔒 Lock in full-time ({LOCK_IN_PACE} h/week) and you could finish {weeksText(hoursLeft, LOCK_IN_PACE).replace("about", "in about")} →
-              </motion.button>
+                className="mt-2 block text-start text-xs font-medium text-accent"
+              >{tr("🔒 Lock in full-time ({value0} h/week) and you could finish {value1} →", { value0: displayValue(LOCK_IN_PACE), value1: weeksText(hoursLeft, LOCK_IN_PACE) })}</motion.button>
             )}
           </AnimatePresence>
         </div>
@@ -116,14 +112,14 @@ export default function RoadmapView({ roadmap, onChange }: { roadmap: Roadmap; o
 
       <AnimatePresence>{allDone && <Celebration />}</AnimatePresence>
 
-      <p className="mb-3 text-xs text-muted">Tick a step once you can show its deliverable. Estimates are rough; edit them to fit you.</p>
+      <p className="mb-3 text-xs text-muted">{tr("Tick a step once you can show its deliverable. Estimates are rough; edit them to fit you.")}</p>
 
       <div className="relative">
         {/* Timeline rail: grey track with a green fill that grows up from the bottom, where finished tasks collect. */}
-        <div aria-hidden className="absolute top-3 bottom-3 left-[15px] w-0.5 rounded-full bg-line" />
+        <div aria-hidden className="absolute top-3 bottom-3 start-[15px] w-0.5 rounded-full bg-line" />
         <motion.div
           aria-hidden
-          className="absolute top-3 bottom-3 left-[15px] w-0.5 origin-bottom rounded-full bg-accent"
+          className="absolute top-3 bottom-3 start-[15px] w-0.5 origin-bottom rounded-full bg-accent"
           initial={{ scaleY: 0 }}
           animate={{ scaleY: done / total }}
           transition={{ type: "spring", stiffness: 120, damping: 20 }}
@@ -146,17 +142,16 @@ export default function RoadmapView({ roadmap, onChange }: { roadmap: Roadmap; o
                 <motion.div
                   layout="position"
                   whileHover={{ y: -2, boxShadow: "0 8px 24px -12px rgba(22,24,29,0.25)" }}
-                  animate={{ opacity: t.done ? 0.55 : 1 }}
+                  animate={{ opacity: 1 }}
                   className={`card min-w-0 flex-1 p-4 ${t.id === currentId ? "border-accent/40" : ""}`}
                 >
                   <AnimatePresence mode="wait" initial={false}>
                     {editing === t.id ? (
                       <motion.div key="edit" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-2">
-                        <input aria-label="Task" className="field" value={t.title} onChange={(e) => set(t.id, { title: e.target.value })} />
-                        <input aria-label="Deliverable" className="field" value={t.deliverable} onChange={(e) => set(t.id, { deliverable: e.target.value })} />
+                        <input dir="auto" aria-label={tr("Task")} className="field" value={t.title} onChange={(e) => set(t.id, { title: e.target.value })} />
+                        <input dir="auto" aria-label={tr("Deliverable")} className="field" value={t.deliverable} onChange={(e) => set(t.id, { deliverable: e.target.value })} />
                         <label className="flex items-center gap-2 text-xs text-muted">
-                          Estimated hours
-                          <input
+                          {tr("Estimated hours")}<input dir="auto"
                             type="number"
                             min={0}
                             max={300}
@@ -166,43 +161,39 @@ export default function RoadmapView({ roadmap, onChange }: { roadmap: Roadmap; o
                           />
                         </label>
                         <div className="flex justify-between">
-                          <button className="text-xs text-bad underline" onClick={() => remove(t.id)}>Delete task</button>
-                          <button className="btn-ghost" onClick={() => setEditing(null)}>Save</button>
+                          <button className="text-xs text-bad underline" onClick={() => remove(t.id)}>{tr("Delete task")}</button>
+                          <button className="btn-ghost" onClick={() => setEditing(null)}>{tr("Save")}</button>
                         </div>
                       </motion.div>
                     ) : (
                       <motion.div key="view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                         <div className="mb-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
-                          <span className="font-medium tracking-wide text-muted uppercase">Step {roadmap.tasks.indexOf(t) + 1}</span>
+                          <span className="font-medium tracking-wide text-muted uppercase">{tr("Step {value0}", { value0: displayValue(roadmap.tasks.indexOf(t) + 1) })}</span>
                           {t.id === currentId && (
-                            <motion.span initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="rounded-full bg-accent-soft px-2 py-0.5 font-medium text-accent">
-                              Up next
-                            </motion.span>
+                            <motion.span initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="rounded-full bg-accent-soft px-2 py-0.5 font-medium text-accent">{tr("Up next")}</motion.span>
                           )}
-                          {t.hours ? <span className="rounded-full bg-paper px-2 py-0.5 text-muted">≈ {t.hours} h</span> : null}
+                          {t.hours ? <span className="rounded-full bg-paper px-2 py-0.5 text-muted">{tr("≈ {value0} h", { value0: displayValue(t.hours) })}</span> : null}
                         </div>
                         <p className="text-sm font-medium">
-                          <span className="relative">
+                          <span lang={locale} dir="auto" className="relative">
                             {t.title}
                             {/* Strike-through draws across the title instead of snapping on. */}
                             <motion.span
                               aria-hidden
-                              className="absolute top-1/2 left-0 h-px w-full origin-left bg-ink"
+                              className="absolute top-1/2 start-0 h-px w-full origin-left bg-ink"
                               initial={false}
                               animate={{ scaleX: t.done ? 1 : 0 }}
                               transition={{ duration: 0.35, ease: "easeOut" }}
                             />
                           </span>
                         </p>
-                        <p className="mt-1 text-sm text-muted">→ {t.deliverable}</p>
+                        <p className="mt-1 text-sm text-muted">{tr("→ {value0}", { value0: displayValue(t.deliverable) })}</p>
                         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-                          {t.requirement !== "Custom" && <span>For: {t.requirement}</span>}
+                          {t.requirement !== "Custom" && <span>{tr("For: {value0}", { value0: displayValue(t.requirement) })}</span>}
                           {t.resource.url && (
-                            <a href={safeHref(t.resource.url)} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-ink" onClick={() => track("resource_opened")}>
-                              {t.resource.name} ↗
-                            </a>
+                            <a href={safeHref(t.resource.url)} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-ink" onClick={() => track("resource_opened")}>{tr("{value0} ↗", { value0: displayValue(t.resource.name) })}</a>
                           )}
-                          <button className="underline underline-offset-2 hover:text-ink" onClick={() => setEditing(t.id)}>Edit</button>
+                          <button className="underline underline-offset-2 hover:text-ink" onClick={() => setEditing(t.id)}>{tr("Edit")}</button>
                         </div>
                         <motion.button
                           whileTap={{ scale: 0.95 }}
@@ -211,7 +202,7 @@ export default function RoadmapView({ roadmap, onChange }: { roadmap: Roadmap; o
                             t.done ? "border border-line bg-white text-muted hover:text-ink" : t.id === currentId ? "bg-accent text-white hover:bg-accent/90" : "border border-line bg-white text-ink hover:border-ink/30"
                           }`}
                         >
-                          {t.done ? "Undo" : "✓ Mark as done"}
+                          {t.done ? tr("Undo") : tr("✓ Mark as done")}
                         </motion.button>
                       </motion.div>
                     )}
@@ -223,15 +214,14 @@ export default function RoadmapView({ roadmap, onChange }: { roadmap: Roadmap; o
         </ul>
       </div>
 
-      <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="btn-ghost mt-4 ml-12" onClick={add}>
-        + Add task
-      </motion.button>
+      <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="btn-ghost mt-4 ms-12" onClick={add}>{tr("+ Add task")}</motion.button>
     </div>
   );
 }
 
 /** The round checkbox on the timeline. */
 function Node({ task, index, current, bursting, onToggle }: { task: Task; index: number; current: boolean; bursting: boolean; onToggle: () => void }) {
+  const tr = useText();
   return (
     <div className="relative z-10 mt-3 size-8 shrink-0">
       {current && (
@@ -245,7 +235,7 @@ function Node({ task, index, current, bursting, onToggle }: { task: Task; index:
       <motion.button
         role="checkbox"
         aria-checked={task.done}
-        aria-label={`Mark "${task.title}" ${task.done ? "not done" : "done"}`}
+        aria-label={task.done ? tr("Mark {title} as not done", { title: task.title }) : tr("Mark {title} as done", { title: task.title })}
         onClick={onToggle}
         whileHover={{ scale: 1.12 }}
         whileTap={{ scale: 0.85 }}
@@ -268,6 +258,7 @@ function Node({ task, index, current, bursting, onToggle }: { task: Task; index:
 
 /** Small particle burst when a task is ticked. */
 function Burst() {
+  const tr = useText();
   const colors = ["#1f5f4a", "#3f9b7a", "#e0a526", "#16181d"];
   return (
     <span aria-hidden className="pointer-events-none absolute inset-0">
@@ -315,6 +306,7 @@ function Counter({ value }: { value: number }) {
 }
 
 function Celebration() {
+  const tr = useText();
   const colors = ["#1f5f4a", "#3f9b7a", "#e0a526", "#a33a2b", "#16181d"];
   return (
     <motion.div
@@ -335,10 +327,8 @@ function Celebration() {
           transition={{ duration: 1.4 + (i % 5) * 0.2, delay: (i % 6) * 0.08, ease: "easeIn" }}
         />
       ))}
-      <motion.p initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }} className="relative font-semibold">
-        Roadmap complete 🎉
-      </motion.p>
-      <p className="relative mt-1 text-sm text-white/80">Re-check your résumé to see what changed, then apply.</p>
+      <motion.p initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }} className="relative font-semibold">{tr("Roadmap complete 🎉")}</motion.p>
+      <p className="relative mt-1 text-sm text-white/80">{tr("Re-check your résumé to see what changed, then apply.")}</p>
     </motion.div>
   );
 }

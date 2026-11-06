@@ -1,6 +1,7 @@
+import { getText } from "@/i18n/server";
 import History from "@/components/History";
 
-export const metadata = { title: "My checks — Carreadi", robots: { index: false, follow: false } };
+export async function generateMetadata() { const t = await getText(); return { title: t("My checks — Carreadi"), robots: { index: false, follow: false } }; }
 
 export default function Page() {
   return <History />;

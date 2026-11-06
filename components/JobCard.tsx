@@ -1,4 +1,7 @@
 "use client";
+import { clientLocale } from "@/lib/client/locale";
+
+import { useText } from "@/lib/useText";
 
 import Link from "next/link";
 import { useState } from "react";
@@ -14,10 +17,11 @@ const REMOTE_LABEL = { remote: "Remote", hybrid: "Hybrid", onsite: "On-site", un
 function fmtDate(iso: string | null) {
   if (!iso) return null;
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString(clientLocale(), { month: "short", day: "numeric", year: "numeric" });
 }
 
 export default function JobCard({ job, children }: { job: JobSummary; children?: React.ReactNode }) {
+  const tr = useText();
   const [open, setOpen] = useState(false);
   const [desc, setDesc] = useState<string | null>(null);
   const [err, setErr] = useState(false);
@@ -27,14 +31,14 @@ export default function JobCard({ job, children }: { job: JobSummary; children?:
     if (desc !== null || open) return;
     try {
       const d = await api<{ job: Job }>(`/api/jobs/${encodeURIComponent(job.id)}`);
-      setDesc(d.job.description || "No description provided.");
+      setDesc(d.job.description || tr("No description provided."));
     } catch {
       setErr(true);
     }
   }
 
   const remote =
-    job.remote === "remote" ? (job.remoteWorldwide ? "Remote · worldwide" : "Remote · restricted") : REMOTE_LABEL[job.remote];
+    job.remote === "remote" ? (job.remoteWorldwide ? tr("Remote · worldwide") : tr("Remote · restricted")) : REMOTE_LABEL[job.remote];
   const date = fmtDate(job.publishedAt);
 
   return (
@@ -46,7 +50,7 @@ export default function JobCard({ job, children }: { job: JobSummary; children?:
             {job.company} · {job.location}
             {AGGREGATORS.has(job.provider) && (
               <>
-                {" "}· via{" "}
+                {" "}{tr("· via")}{" "}
                 <a href={safeHref(job.sourceUrl)} target="_blank" rel="noopener" className="underline underline-offset-2 hover:text-ink">
                   {PROVIDER_NAMES[job.provider]}
                 </a>
@@ -54,31 +58,27 @@ export default function JobCard({ job, children }: { job: JobSummary; children?:
             )}
           </p>
         </div>
-        <a href={safeHref(job.applyUrl)} target="_blank" rel="noopener noreferrer" className="btn-ghost shrink-0 px-3 py-1.5 text-xs">
-          Apply ↗
-        </a>
+        <a href={safeHref(job.applyUrl)} target="_blank" rel="noopener noreferrer" className="btn-ghost shrink-0 px-3 py-1.5 text-xs">{tr("Apply ↗")}</a>
       </div>
       <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-muted">
-        {remote && <span className="rounded-full bg-paper px-2 py-0.5">{remote}</span>}
+        {remote && <span className="rounded-full bg-paper px-2 py-0.5">{tr(remote)}</span>}
         {job.employmentType && <span className="rounded-full bg-paper px-2 py-0.5">{job.employmentType}</span>}
         {job.salary && <span className="rounded-full bg-paper px-2 py-0.5">{job.salary}</span>}
-        {date && <span className="rounded-full bg-paper px-2 py-0.5">{job.provider === "lever" ? "Created" : "Posted"} {date}</span>}
+        {date && <span className="rounded-full bg-paper px-2 py-0.5">{job.provider === "lever" ? tr("Created") : tr("Posted")} {date}</span>}
       </div>
       {children}
       <div className="mt-3 flex gap-4 text-xs">
         <button className="text-muted underline underline-offset-2 hover:text-ink" onClick={toggle} aria-expanded={open}>
-          {open ? "Hide details" : "Details"}
+          {open ? tr("Hide details") : tr("Details")}
         </button>
-        <Link href={`/?job=${encodeURIComponent(job.id)}`} className="text-muted underline underline-offset-2 hover:text-ink">
-          Check my readiness
-        </Link>
+        <Link href={`/?job=${encodeURIComponent(job.id)}`} className="text-muted underline underline-offset-2 hover:text-ink">{tr("Check my readiness")}</Link>
       </div>
       {open && (
         <div className="mt-3 max-h-80 overflow-y-auto rounded-xl bg-paper p-3 text-xs leading-relaxed whitespace-pre-line">
-          {err ? "Couldn't load this posting." : desc ?? "Loading…"}
+          {err ? tr("Couldn't load this posting.") : desc ?? tr("Loading…")}
           <p className="mt-3 text-muted">
-            Source: {PROVIDER_NAMES[job.provider]} · checked {fmtDate(job.lastChecked)} ·{" "}
-            <a href={safeHref(job.sourceUrl)} target="_blank" rel="noopener noreferrer" className="underline">original posting ↗</a>
+            {tr("Source: ")}{PROVIDER_NAMES[job.provider]} {tr(" · checked ")}{fmtDate(job.lastChecked)} ·{" "}
+            <a href={safeHref(job.sourceUrl)} target="_blank" rel="noopener noreferrer" className="underline">{tr("original posting ↗")}</a>
           </p>
         </div>
       )}

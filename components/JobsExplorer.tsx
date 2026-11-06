@@ -1,4 +1,7 @@
 "use client";
+import { clientLocale } from "@/lib/client/locale";
+
+import { useText, displayValue } from "@/lib/useText";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -19,6 +22,7 @@ const EXTERNAL = [
 ];
 
 export default function JobsExplorer() {
+  const tr = useText();
   const [f, setF] = useState({ q: "", path: "", location: "", remote: "any", type: "" });
   const [page, setPage] = useState(0);
   const [state, setState] = useState<{ jobs: JobSummary[]; total: number; errors: string[] } | null>(null);
@@ -36,7 +40,7 @@ export default function JobsExplorer() {
         const d = await api<{ jobs: JobSummary[]; total: number; errors: string[] }>(`/api/jobs?${qs}`);
         setState((prev) => ({ ...d, jobs: page && prev ? [...prev.jobs, ...d.jobs] : d.jobs }));
       } catch (e) {
-        setError(e instanceof Error && e.message ? e.message : "Couldn't load jobs.");
+        setError(e instanceof Error && e.message ? e.message : tr("Couldn't load jobs."));
       } finally {
         setLoading(false);
       }
@@ -51,30 +55,30 @@ export default function JobsExplorer() {
 
   return (
     <div className="mx-auto w-full max-w-2xl py-8">
-      <h1 className="text-2xl font-semibold tracking-tight">Live jobs</h1>
-      <p className="mt-1 text-sm text-muted">From employer career pages, plus remote-job sites if you turn them on.</p>
+      <h1 className="text-2xl font-semibold tracking-tight">{tr("Live jobs")}</h1>
+      <p className="mt-1 text-sm text-muted">{tr("From employer career pages, plus remote-job sites if you turn them on.")}</p>
 
       <div className="mt-6 space-y-2">
-        <label htmlFor="q" className="sr-only">Search</label>
-        <input id="q" className="field" placeholder="Search title or company" value={f.q} onChange={(e) => update("q", e.target.value)} />
+        <label htmlFor="q" className="sr-only">{tr("Search")}</label>
+        <input dir="auto" id="q" className="field" placeholder={tr("Search title or company")} value={f.q} onChange={(e) => update("q", e.target.value)} />
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <select aria-label="Career path" className="field" value={f.path} onChange={(e) => update("path", e.target.value)}>
-            <option value="">All paths</option>
-            {CAREER_PATHS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+          <select aria-label={tr("Career path")} className="field" value={f.path} onChange={(e) => update("path", e.target.value)}>
+            <option value="">{tr("All paths")}</option>
+            {CAREER_PATHS.map((c) => <option key={c.id} value={c.id}>{tr(c.label)}</option>)}
           </select>
-          <input aria-label="Location" className="field" placeholder="Location" value={f.location} onChange={(e) => update("location", e.target.value)} />
-          <select aria-label="Work style" className="field" value={f.remote} onChange={(e) => update("remote", e.target.value)}>
-            <option value="any">Any work style</option>
-            <option value="remote">Remote</option>
-            <option value="hybrid">Hybrid</option>
-            <option value="onsite">On-site</option>
+          <input dir="auto" aria-label={tr("Location")} className="field" placeholder={tr("Location")} value={f.location} onChange={(e) => update("location", e.target.value)} />
+          <select aria-label={tr("Work style")} className="field" value={f.remote} onChange={(e) => update("remote", e.target.value)}>
+            <option value="any">{tr("Any work style")}</option>
+            <option value="remote">{tr("Remote")}</option>
+            <option value="hybrid">{tr("Hybrid")}</option>
+            <option value="onsite">{tr("On-site")}</option>
           </select>
-          <select aria-label="Employment type" className="field" value={f.type} onChange={(e) => update("type", e.target.value)}>
-            <option value="">Any type</option>
-            <option value="full">Full-time</option>
-            <option value="part">Part-time</option>
-            <option value="contract">Contract</option>
-            <option value="intern">Internship</option>
+          <select aria-label={tr("Employment type")} className="field" value={f.type} onChange={(e) => update("type", e.target.value)}>
+            <option value="">{tr("Any type")}</option>
+            <option value="full">{tr("Full-time")}</option>
+            <option value="part">{tr("Part-time")}</option>
+            <option value="contract">{tr("Contract")}</option>
+            <option value="intern">{tr("Internship")}</option>
           </select>
         </div>
         <SourcePicker value={sources} onChange={(v) => { setPage(0); setSources(v); }} />
@@ -82,16 +86,14 @@ export default function JobsExplorer() {
 
       <div className="mt-6">
         {state && (
-          <p className="mb-3 text-xs text-muted">
-            {state.total.toLocaleString()} jobs{state.errors.length ? ` · ${state.errors.join(", ")}` : ""}
-          </p>
+          <p className="mb-3 text-xs text-muted">{tr("{value0} jobs{value1}", { value0: displayValue(state.total.toLocaleString(clientLocale())), value1: displayValue(state.errors.length ? ` · ${state.errors.join(", ")}` : "") })}</p>
         )}
-        {error && <p role="alert" className="rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">{error}</p>}
-        {loading && !state && <p className="flex items-center gap-2 text-sm text-muted"><Spinner /> Loading live jobs…</p>}
+        {error && <p role="alert" className="rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">{tr(error)}</p>}
+        {loading && !state && <p className="flex items-center gap-2 text-sm text-muted"><Spinner /> {tr(" Loading live jobs…")}</p>}
         {state && !state.jobs.length && !loading && (
           <div className="py-12 text-center">
-            <p className="font-medium">No jobs match</p>
-            <p className="mt-1 text-sm text-muted">Try fewer filters, or search the sites below.</p>
+            <p className="font-medium">{tr("No jobs match")}</p>
+            <p className="mt-1 text-sm text-muted">{tr("Try fewer filters, or search the sites below.")}</p>
           </div>
         )}
         <ul className="space-y-2">
@@ -99,21 +101,21 @@ export default function JobsExplorer() {
         </ul>
         {state && state.jobs.length < state.total && (
           <button className="btn-ghost mx-auto mt-4 flex" disabled={loading} onClick={() => setPage(page + 1)}>
-            {loading ? "Loading…" : "Show more"}
+            {loading ? tr("Loading…") : tr("Show more")}
           </button>
         )}
       </div>
 
       <div className="mt-10 border-t border-line pt-5 text-xs text-muted">
         <p className="mb-2">
-          Can&rsquo;t find a company?{" "}
-          <Link href="/request" className="font-medium text-ink underline underline-offset-2">Request it</Link>
+          {tr("Can’t find a company?")}{" "}
+          <Link href="/request" className="font-medium text-ink underline underline-offset-2">{tr("Request it")}</Link>
         </p>
-        Search other sites:{" "}
+        {tr("Search other sites:")}{" "}
         {EXTERNAL.map((s, i) => (
           <span key={s.name}>
             {i > 0 && " · "}
-            <a className="underline hover:text-ink" href={s.url(f.q)} target="_blank" rel="noopener noreferrer">{s.name} ↗</a>
+            <a className="underline hover:text-ink" href={s.url(f.q)} target="_blank" rel="noopener noreferrer">{tr("{value0} ↗", { value0: displayValue(s.name) })}</a>
           </span>
         ))}
       </div>

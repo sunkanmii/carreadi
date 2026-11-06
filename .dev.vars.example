@@ -5,6 +5,12 @@
 QUOTA_SALT=any-long-random-string
 ADMIN_TOKEN=at-least-16-random-characters
 
+# Email sign-in and permanent owner access (owner must verify their inbox).
+# OWNER_EMAIL=owner@example.com
+# RESEND_API_KEY=re_...
+# DATA_KEY=at-least-32-random-characters
+# EMAIL_FROM=Carreadi <no-reply@auth.naijabukana.com>
+
 # Payments (Bachs). Checkout can't run locally: Bachs needs a public return URL.
 # BACHS_API_KEY=sk_sandbox_...
 # BACHS_WEBHOOK_SECRET=...

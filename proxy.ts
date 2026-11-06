@@ -9,5 +9,7 @@ export function proxy(req: NextRequest) {
     url.protocol = "https:";
     return NextResponse.redirect(url, 308);
   }
-  return NextResponse.next();
+  const response = NextResponse.next();
+  if (!url.pathname.startsWith("/api/") && !url.pathname.startsWith("/_next/") && !/\.[a-z0-9]+$/i.test(url.pathname)) response.headers.set("Vary", "Accept-Language, Cookie");
+  return response;
 }

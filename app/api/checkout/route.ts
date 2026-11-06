@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ownerFor } from "@/lib/server/account";
 import { createCheckout, passStatus } from "@/lib/server/payments";
 import { currencyFor } from "@/lib/server/geo";
 import { dailyLimit, json, rateLimit, readJson } from "@/lib/server/guard";
@@ -17,6 +18,7 @@ const Body = z.object({
 export async function POST(req: Request) {
   const limited = await rateLimit(req);
   if (limited) return limited;
+  if (await ownerFor(req)) return json({ error: "Your owner account already has full access. No pass is needed." }, 409);
   const read = await readJson(req, 1_000);
   if (read instanceof Response) return read;
   const parsed = Body.safeParse(read.body);

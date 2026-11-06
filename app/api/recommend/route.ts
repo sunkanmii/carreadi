@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ownerFor } from "@/lib/server/account";
 import { filterJobs, getAllJobs } from "@/lib/jobs";
 import { FREE_MATCHES } from "@/lib/plans";
 import { recommend } from "@/lib/recommend";
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
   const { jobs, errors } = await getAllJobs();
   const pool = filterJobs(jobs, { sources: parseSources(parsed.data.sources) });
   const all = recommend(pool, parsed.data, PASS_MATCHES);
-  const paid = parsed.data.passToken ? await passStatus(parsed.data.passToken).then((s) => s.active).catch(() => false) : false;
+  const paid = await ownerFor(req) || (parsed.data.passToken ? await passStatus(parsed.data.passToken).then((s) => s.active).catch(() => false) : false);
   const shown = paid ? all : all.slice(0, FREE_MATCHES);
   return json({ recommendations: shown, locked: all.length - shown.length, errors });
 }

@@ -1,4 +1,5 @@
 "use client";
+import { useText, displayValue } from "@/lib/useText";
 
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
@@ -18,13 +19,14 @@ const STAGES = [
  * "keep this page open" warning. Leaving mid-run asks the browser to confirm first.
  */
 export default function AnalyzeProgress({ reconnecting }: { reconnecting: boolean }) {
+  const tr = useText();
   const [seconds, setSeconds] = useState(0);
 
   useEffect(() => {
     const started = Date.now();
     const tick = setInterval(() => setSeconds(Math.floor((Date.now() - started) / 1000)), 500);
     const title = document.title;
-    document.title = "Analyzing… · Carreadi";
+    document.title = tr("Analyzing… · Carreadi");
     // A refresh or close would throw the run away: ask first.
     const warn = (e: BeforeUnloadEvent) => {
       e.preventDefault();
@@ -54,11 +56,9 @@ export default function AnalyzeProgress({ reconnecting }: { reconnecting: boolea
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.2 }}
             className="font-medium text-ink"
-          >
-            {reconnecting ? "Picking up where you left off" : stage.label}…
-          </motion.p>
+          >{tr("{value0}…", { value0: displayValue(reconnecting ? tr("Picking up where you left off") : tr(stage.label)) })}</motion.p>
         </AnimatePresence>
-        <span className="shrink-0 tabular-nums text-muted">{seconds}s</span>
+        <span className="shrink-0 tabular-nums text-muted">{tr("{value0}s", { value0: displayValue(seconds) })}</span>
       </div>
 
       <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
@@ -71,11 +71,11 @@ export default function AnalyzeProgress({ reconnecting }: { reconnecting: boolea
         ))}
       </ol>
 
-      <p className="mt-3 text-sm font-medium text-warn">⚠️ Keep this page open. Don&rsquo;t refresh or close it.</p>
+      <p className="mt-3 text-sm font-medium text-warn">{tr("⚠️ Keep this page open. Don’t refresh or close it.")}</p>
       <p className="mt-1 text-xs leading-relaxed text-muted">
         {reconnecting
-          ? "Your connection dropped while you were away, so we started again. This doesn't use another free check."
-          : "This usually takes 30–45 seconds. If you switch apps, come back to this tab and it will carry on without using another free check."}
+          ? tr("Your connection dropped while you were away, so we started again. This doesn't use another free check.")
+          : tr("This usually takes 30–45 seconds. If you switch apps, come back to this tab and it will carry on without using another free check.")}
       </p>
     </div>
   );

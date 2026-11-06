@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { ownerFor } from "@/lib/server/account";
 import { AnalysisError, runAnalysis, type AiLike } from "@/lib/analysis/run";
 import { AnalyzeRequestSchema, toPreview } from "@/lib/analysis/schema";
 import { careerById } from "@/lib/careers";
@@ -6,6 +7,7 @@ import { getJob } from "@/lib/jobs";
 import { consumeQuota, json, rateLimit, readJson } from "@/lib/server/guard";
 import { consumePass, refundPassUse } from "@/lib/server/payments";
 import { bumpStat } from "@/lib/server/stats";
+import { requestLocale } from "@/lib/i18n";
 
 async function sha256(s: string) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
@@ -35,14 +37,15 @@ export async function POST(req: Request) {
 
   // A pass gives full results; without one, the weekly free analysis gives a preview.
   let passLeft: number | null = null;
-  if (input.passToken) {
+  const owner = await ownerFor(req);
+  if (!owner && input.passToken) {
     try {
       passLeft = await consumePass(input.passToken);
     } catch {
       return json({ error: "Couldn't check your pass right now. Try again in a moment." }, 503);
     }
   }
-  const paid = passLeft !== null;
+  const paid = owner || passLeft !== null;
   const quota = paid ? null : await consumeQuota(req, await sha256(`${input.resumeText}
 ${input.jobId ?? jobText}`));
   if (quota && !quota.ok)
@@ -58,6 +61,7 @@ ${input.jobId ?? jobText}`));
 
   try {
     const analysis = await runAnalysis(ai, {
+      locale: requestLocale(req),
       resumeText: input.resumeText,
       jobText,
       careerPath: careerById(input.careerPath)?.label,
@@ -69,10 +73,10 @@ ${input.jobId ?? jobText}`));
       // Free previews are trimmed here, on the server: locked gaps never reach the browser.
       analysis: paid ? analysis : toPreview(analysis),
       job: job && { id: job.id, title: job.title, company: job.company, applyUrl: job.applyUrl },
-      pass: paid ? { analysesLeft: passLeft } : null,
+      pass: owner ? { owner: true } : paid ? { analysesLeft: passLeft } : null,
     });
   } catch (e) {
-    if (paid) await refundPassUse(input.passToken!).catch(() => {});
+    if (paid && !owner) await refundPassUse(input.passToken!).catch(() => {});
     else await quota?.refund();
     if (e instanceof AnalysisError) return json({ error: e.message }, 502);
     console.error("analyze: unexpected error", e instanceof Error ? e.name : "unknown");

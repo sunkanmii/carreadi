@@ -3,11 +3,15 @@ import { strToU8, zipSync } from "fflate";
 import type { Analysis, Finding } from "../analysis/schema";
 import type { Roadmap } from "../roadmap";
 import type { Saved } from "./store";
+import { clientLocale, clientText } from "./locale";
+import { direction, isLocale, type Locale } from "../i18n";
 
 // Exports of full (paid) results: Word, print-to-PDF, calendar and a plain checklist.
 // Everything is built in the browser; nothing is sent anywhere.
 
 export interface Report {
+  locale?: Locale;
+  contentLocale?: Locale;
   title: string;
   date: string;
   summary: string;
@@ -30,8 +34,10 @@ const SITE = "carreadi.naijabukana.com";
 export function reportOf(s: Saved): Report {
   const a = s.analysis as Analysis;
   return {
+    locale: isLocale(clientLocale()) ? clientLocale() as Locale : "en",
+    contentLocale: isLocale(a.locale) ? a.locale : "en",
     title: s.job ? `${s.job.title} · ${s.job.company}` : a.roleTitle,
-    date: new Date().toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" }),
+    date: new Date().toLocaleDateString(clientLocale(), { day: "numeric", month: "long", year: "numeric" }),
     summary: a.summary,
     proven: a.findings.filter((f) => f.status === "demonstrated"),
     gaps: a.findings.filter((f) => f.status !== "demonstrated").sort((x, y) => x.priority - y.priority),
@@ -54,13 +60,13 @@ function download(name: string, data: BlobPart, type: string) {
 
 /** Plain-text checklist that pastes cleanly into Notes, OneNote, Notion, Google Keep or WhatsApp. */
 export function checklistText(r: Report) {
-  const lines = [`Carreadi roadmap: ${r.title}`, ""];
+  const lines = [clientText("Carreadi roadmap: {title}", { title: r.title }), ""];
   for (const t of r.roadmap.tasks) {
     lines.push(`${t.done ? "☑" : "☐"} ${t.title}${t.hours ? ` (~${t.hours} h)` : ""}`);
     if (t.deliverable) lines.push(`   → ${t.deliverable}`);
     if (t.resource?.url) lines.push(`   ${t.resource.name}: ${t.resource.url}`);
   }
-  lines.push("", `Made with Carreadi · ${SITE}`);
+  lines.push("", clientText("Made with Carreadi · {site}", { site: SITE }));
   return lines.join("\n");
 }
 
@@ -80,36 +86,37 @@ const para = (runs: Run[], opts: { before?: number; after?: number; indent?: num
 const heading = (text: string) => para([{ text, bold: true, size: 15, color: "1F5F4A" }], { before: 14, after: 6 });
 
 export function docxBytes(r: Report): Uint8Array {
+  const t = clientText;
   const body: string[] = [
-    para([{ text: "Carreadi · Career readiness report", size: 9, color: "6B6F78" }]),
+    para([{ text: t("Carreadi · Career readiness report"), size: 9, color: "6B6F78" }]),
     para([{ text: r.title, bold: true, size: 20 }], { after: 2 }),
     para([{ text: r.date, size: 10, color: "6B6F78" }], { after: 10 }),
   ];
   if (r.summary) body.push(para([{ text: r.summary }]));
 
-  body.push(heading("Your roadmap"));
+  body.push(heading(t("Your roadmap")));
   for (const t of r.roadmap.tasks) {
     body.push(para([{ text: `${t.done ? "☑" : "☐"}  `, size: 12 }, { text: t.title, bold: true }, ...(t.hours ? [{ text: `   ~${t.hours} h`, color: "6B6F78" }] : [])], { before: 6, after: 2 }));
-    if (t.deliverable) body.push(para([{ text: "Deliverable: ", color: "6B6F78" }, { text: t.deliverable }], { indent: 22, after: 2 }));
+    if (t.deliverable) body.push(para([{ text: clientText("Deliverable: "), color: "6B6F78" }, { text: t.deliverable }], { indent: 22, after: 2 }));
     if (t.requirement) body.push(para([{ text: "Closes: ", color: "6B6F78" }, { text: t.requirement }], { indent: 22, after: 2 }));
     if (t.resource?.url) body.push(para([{ text: "Learn: ", color: "6B6F78" }, { text: `${t.resource.name} · ${t.resource.url}`, color: "1F5F4A" }], { indent: 22 }));
   }
 
-  body.push(heading("What your CV already proves"));
+  body.push(heading(t("What your CV already proves")));
   if (!r.proven.length) body.push(para([{ text: "Nothing clearly shown yet.", color: "6B6F78" }]));
   for (const f of r.proven) {
     body.push(para([{ text: "✓  ", color: "1F5F4A", bold: true }, { text: f.requirement, bold: true }], { before: 4, after: 2 }));
     if (f.evidence) body.push(para([{ text: `“${f.evidence}”`, italic: true, color: "444444" }], { indent: 22 }));
   }
 
-  body.push(heading("What's missing"));
+  body.push(heading(t("What's missing")));
   if (!r.gaps.length) body.push(para([{ text: "No gaps found.", color: "6B6F78" }]));
   for (const f of r.gaps) {
-    body.push(para([{ text: f.requirement, bold: true }, { text: `   ${STATUS[f.status]} · ${IMPORTANCE[f.importance]}`, color: f.status === "missing" || f.status === "eligibility" ? "A33A2B" : "8A6D1F" }], { before: 4 }));
+    body.push(para([{ text: f.requirement, bold: true }, { text: `   ${t(STATUS[f.status])} · ${t(IMPORTANCE[f.importance])}`, color: f.status === "missing" || f.status === "eligibility" ? "A33A2B" : "8A6D1F" }], { before: 4 }));
   }
 
-  if (r.link) body.push(para([{ text: "Apply: ", color: "6B6F78" }, { text: r.link, color: "1F5F4A" }], { before: 12 }));
-  body.push(para([{ text: `Made with Carreadi · ${SITE}. AI output, checked against your CV text. Not a prediction of hiring outcomes.`, size: 8, color: "6B6F78" }], { before: 18 }));
+  if (r.link) body.push(para([{ text: t("Apply: "), color: "6B6F78" }, { text: r.link, color: "1F5F4A" }], { before: 12 }));
+  body.push(para([{ text: t("Made with Carreadi · {site}. AI output, checked against your CV text. Not a prediction of hiring outcomes.", { site: SITE }), size: 8, color: "6B6F78" }], { before: 18 }));
 
   const document = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body.join("")}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="0" w:footer="0" w:gutter="0"/></w:sectPr></w:body></w:document>`;
   return zipSync({
@@ -119,7 +126,7 @@ export function docxBytes(r: Report): Uint8Array {
     "_rels/.rels": strToU8(
       `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`,
     ),
-    "word/document.xml": strToU8(document),
+    "word/document.xml": strToU8(r.locale === "ar" ? document.replace(/<w:pPr>/g, '<w:pPr><w:bidi/><w:jc w:val="right"/>').replace(/<w:rPr>/g, '<w:rPr><w:lang w:val="ar" w:bidi="ar"/>') : document),
   });
 }
 
@@ -131,13 +138,14 @@ export function downloadDocx(r: Report) {
 
 export function printReport(r: Report) {
   const h = (s: string) => esc(s);
+  const t = (source: string) => h(clientText(source));
   const task = (t: Roadmap["tasks"][number]) => `
     <li class="${t.done ? "done" : ""}"><span class="box">${t.done ? "✓" : ""}</span><div>
       <b>${h(t.title)}</b>${t.hours ? ` <span class="m">~${t.hours} h</span>` : ""}
-      ${t.deliverable ? `<div class="m">Deliverable: <span class="ink">${h(t.deliverable)}</span></div>` : ""}
-      ${t.resource?.url ? `<div class="m">Learn: <a href="${h(t.resource.url)}">${h(t.resource.name)}</a></div>` : ""}
+      ${t.deliverable ? `<div class="m">${h(clientText("Deliverable: "))}<span class="ink" dir="auto">${h(t.deliverable)}</span></div>` : ""}
+      ${t.resource?.url ? `<div class="m">${h(clientText("Learn: "))}<a href="${h(t.resource.url)}">${h(t.resource.name)}</a></div>` : ""}
     </div></li>`;
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${h(fileName(r, "pdf").replace(/\.pdf$/, ""))}</title><style>
+  const html = `<!doctype html><html lang="${isLocale(r.locale) ? r.locale : "en"}" dir="${direction(r.locale ?? "en")}"><head><meta charset="utf-8"><title>${h(fileName(r, "pdf").replace(/\.pdf$/, ""))}</title><style>
     @page{margin:18mm} *{box-sizing:border-box} body{font:11pt/1.5 Inter,system-ui,sans-serif;color:#16181d;margin:0 auto;max-width:720px;padding:24px}
     .k{font-size:9pt;color:#6b6f78;letter-spacing:.04em;text-transform:uppercase} h1{font-size:20pt;margin:4px 0 2px;letter-spacing:-.02em}
     h2{font-size:13pt;color:#1f5f4a;margin:22px 0 8px;border-bottom:1px solid #e7e5e1;padding-bottom:4px} .m{color:#6b6f78;font-size:10pt} .ink{color:#16181d}
@@ -145,13 +153,13 @@ export function printReport(r: Report) {
     li.done .box{background:#1f5f4a} li.done b{text-decoration:line-through;color:#6b6f78} q{font-style:italic;color:#444} a{color:#1f5f4a}
     .tag{font-size:9pt;padding:1px 8px;border-radius:99px;background:#fbe9e6;color:#a33a2b;margin-left:6px} .foot{margin-top:28px;font-size:8.5pt;color:#6b6f78}
   </style></head><body>
-    <div class="k">Carreadi · Career readiness report</div><h1>${h(r.title)}</h1><div class="m">${h(r.date)}</div>
-    ${r.summary ? `<p>${h(r.summary)}</p>` : ""}
-    <h2>Your roadmap</h2><ul>${r.roadmap.tasks.map(task).join("")}</ul>
-    <h2>What your CV already proves</h2><ul>${r.proven.map((f) => `<li><span class="box" style="background:#1f5f4a">✓</span><div><b>${h(f.requirement)}</b>${f.evidence ? `<div><q>${h(f.evidence)}</q></div>` : ""}</div></li>`).join("") || `<li class="m">Nothing clearly shown yet.</li>`}</ul>
-    <h2>What's missing</h2><ul>${r.gaps.map((f) => `<li><div><b>${h(f.requirement)}</b><span class="tag">${STATUS[f.status]}</span> <span class="m">${IMPORTANCE[f.importance]}</span></div></li>`).join("") || `<li class="m">No gaps found.</li>`}</ul>
-    ${r.link ? `<p class="m">Apply: <a href="${h(r.link)}">${h(r.link)}</a></p>` : ""}
-    <p class="foot">Made with Carreadi · ${SITE}. AI output, checked against your CV text. Not a prediction of hiring outcomes.</p>
+    <div class="k">${t("Carreadi · Career readiness report")}</div><h1 dir="auto">${h(r.title)}</h1><div class="m">${h(r.date)}</div>
+    ${r.summary ? `<p lang="${isLocale(r.contentLocale) ? r.contentLocale : "en"}" dir="auto">${h(r.summary)}</p>` : ""}
+    <h2>${t("Your roadmap")}</h2><ul>${r.roadmap.tasks.map(task).join("")}</ul>
+    <h2>${t("What your CV already proves")}</h2><ul>${r.proven.map((f) => `<li><span class="box" style="background:#1f5f4a">✓</span><div><b dir="auto">${h(f.requirement)}</b>${f.evidence ? `<div><q dir="auto">${h(f.evidence)}</q></div>` : ""}</div></li>`).join("") || `<li class="m">${t("Nothing clearly shown yet.")}</li>`}</ul>
+    <h2>${t("What's missing")}</h2><ul>${r.gaps.map((f) => `<li><div><b dir="auto">${h(f.requirement)}</b><span class="tag">${t(STATUS[f.status])}</span> <span class="m">${t(IMPORTANCE[f.importance])}</span></div></li>`).join("") || `<li class="m">${t("No gaps found.")}</li>`}</ul>
+    ${r.link ? `<p class="m">${t("Apply: ")}<a dir="ltr" href="${h(r.link)}">${h(r.link)}</a></p>` : ""}
+    <p class="foot">${h(clientText("Made with Carreadi · {site}. AI output, checked against your CV text. Not a prediction of hiring outcomes.", { site: SITE }))}</p>
   </body></html>`;
   const w = window.open("", "_blank");
   if (!w) return false;
@@ -180,7 +188,7 @@ export function calendarText(r: Report, now = new Date()) {
       dayOffset += Math.max(1, Math.round((hours / pace) * 7));
       due.setDate(start.getDate() + dayOffset);
       const end = new Date(due.getTime() + 60 * 60 * 1000);
-      const desc = [t.deliverable && `Deliverable: ${t.deliverable}`, t.resource?.url && `Learn: ${t.resource.name} ${t.resource.url}`, `Roadmap for ${r.title}`].filter(Boolean).join("\n");
+      const desc = [t.deliverable && `${clientText("Deliverable: ")}${t.deliverable}`, t.resource?.url && `${clientText("Learn: ")}${t.resource.name} ${t.resource.url}`, clientText("Roadmap for {title}", { title: r.title })].filter(Boolean).join("\n");
       return [
         "BEGIN:VEVENT",
         `UID:${icsDate(now)}-${i}@carreadi`,
@@ -192,7 +200,7 @@ export function calendarText(r: Report, now = new Date()) {
         "BEGIN:VALARM",
         "TRIGGER:-P1D",
         "ACTION:DISPLAY",
-        `DESCRIPTION:${icsEscape(`Due tomorrow: ${t.title}`)}`,
+        `DESCRIPTION:${icsEscape(clientText("Due tomorrow: {title}", { title: t.title }))}`,
         "END:VALARM",
         "END:VEVENT",
       ].join("\r\n");

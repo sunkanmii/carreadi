@@ -4,6 +4,7 @@
 import type { Currency, PassId } from "../plans";
 import { api, postJson } from "./http";
 import { load, save } from "./store";
+import { getSession } from "./session";
 
 const KEY = "carreadi:pass";
 
@@ -15,6 +16,7 @@ export interface StoredPass {
 }
 export interface PassStatus {
   active: boolean;
+  owner?: boolean;
   plan?: PassId;
   expiresAt?: number;
   analysesLeft?: number;
@@ -45,14 +47,14 @@ export function clearPass() {
   window.dispatchEvent(new Event("carreadi:pass"));
 }
 
-const statusOf = (token: string, check: boolean) => api<PassStatus>("/api/pass", postJson({ action: "status", token, check }));
+const statusOf = (token: string | undefined, check: boolean) => api<PassStatus>("/api/pass", postJson({ action: "status", token, check }));
 
 export async function passStatus(check = false): Promise<PassStatus> {
   const p = getPass();
-  if (!p) return { active: false };
-  const s = await statusOf(p.token, check);
+  if (!p && !getSession()) return { active: false };
+  const s = await statusOf(p?.token, check);
   // A new purchase that never completed must not hide a pass that is still active.
-  if (!s.active && p.previous) {
+  if (!s.active && p?.previous) {
     const prev = await statusOf(p.previous.token, false).catch(() => null);
     if (prev?.active) {
       setPass(p.previous);
@@ -87,6 +89,20 @@ export async function visitorCurrency(): Promise<Currency> {
   } catch {
     return "USD";
   }
+}
+
+export interface Pricing {
+  currency: Currency;
+  promo: { percent: number; endsAt: number } | null;
+}
+
+/** Currency and any running promo, both decided by the server. Asked once per page. */
+let pricing: Promise<Pricing> | null = null;
+export function visitorPricing(): Promise<Pricing> {
+  pricing ??= api<Pricing>("/api/pricing")
+    .then((p) => ({ currency: p.currency, promo: p.promo ?? null }))
+    .catch(() => ({ currency: "USD" as Currency, promo: null }));
+  return pricing;
 }
 
 export function daysLeft(expiresAt?: number) {

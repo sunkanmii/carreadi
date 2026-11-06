@@ -2,6 +2,7 @@
 import { api, postJson } from "./http";
 import { getPass } from "./pass";
 import { loadHistory, replaceHistory, type HistoryEntry } from "./store";
+import { clientText } from "./locale";
 
 // Paid users can sign in by email link; their checks (results only, never the CV) are then kept
 // in their Carreadi account too, so they survive a cleared browser and show up on any device.
@@ -22,6 +23,7 @@ function setSession(token: string | null) {
     else localStorage.removeItem(KEY);
   } catch {}
   window.dispatchEvent(new Event("carreadi:session"));
+  window.dispatchEvent(new Event("carreadi:pass"));
 }
 
 async function authed<T>(url: string, init: RequestInit = {}): Promise<T> {
@@ -30,7 +32,7 @@ async function authed<T>(url: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(url, { ...init, headers: { ...(init.headers ?? {}), authorization: `Bearer ${token}`, "content-type": "application/json" } });
   const data = (await res.json().catch(() => ({}))) as T & { error?: string; signedOut?: boolean };
   if (res.status === 401 && data.signedOut) setSession(null);
-  if (!res.ok) throw new Error(data.error || "Something went wrong. Please try again.");
+  if (!res.ok) throw new Error(clientText(data.error || "Something went wrong. Please try again."));
   return data;
 }
 

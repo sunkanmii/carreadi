@@ -2,7 +2,7 @@
 // only its SHA-256 hash. A payment counts only after we confirm it with Bachs ourselves
 // (webhook or lookup), never because the browser says so.
 import { env } from "cloudflare:workers";
-import { PASSES, type Currency, type PassId } from "../plans";
+import { PASSES, priceOf, type Currency, type PassId } from "../plans";
 import {
   bachsEnv,
   bachsRequest,
@@ -129,7 +129,8 @@ export async function createCheckout(req: Request, plan: PassId, currency: Curre
   const origin = publicOrigin(req);
   if (!origin) return { error: "Checkout only works on the live site. Nothing was charged.", status: 503 };
   const pass = PASSES[plan];
-  const amount = pass.price[currency];
+  // Promo included; the order keeps this amount, and payment is only accepted if it matches.
+  const amount = priceOf(plan, currency);
   const reference = `carreadi-${crypto.randomUUID()}`;
   const token = newToken();
   const d = await db();

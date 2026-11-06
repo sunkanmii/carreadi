@@ -109,3 +109,23 @@ describe("pass activity", () => {
     expect(passIsActive({ ...base, status: "reversed" as never }, now)).toBe(false); // refunded
   });
 });
+
+describe("promo pricing", () => {
+  it("halves every pass only while the promo runs, rounded to whole naira and cents", async () => {
+    const { activePromo, discounted, priceOf, PROMO } = await import("@/lib/plans");
+    if (!PROMO) return;
+    const during = Date.parse(PROMO.startsAt) + 1000;
+    const after = Date.parse(PROMO.endsAt);
+    expect(activePromo(after)).toBeNull();
+    expect(activePromo(Date.parse(PROMO.startsAt) - 1)).toBeNull();
+    expect(priceOf("day", "NGN", after)).toBe(200_000);
+    if (PROMO.percent === 50) {
+      expect(priceOf("day", "NGN", during)).toBe(100_000);
+      expect(priceOf("week", "NGN", during)).toBe(250_000);
+      expect(priceOf("day", "USD", during)).toBe(100);
+      expect(priceOf("week", "USD", during)).toBe(250);
+    }
+    expect(discounted(500_000, "NGN", 33)).toBe(335_000); // ₦3,350, whole naira
+    expect(discounted(500, "USD", 33)).toBe(335);
+  });
+});

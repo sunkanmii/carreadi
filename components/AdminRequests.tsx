@@ -1,8 +1,13 @@
 "use client";
+import { clientLocale } from "@/lib/client/locale";
+
+import { useText, displayValue } from "@/lib/useText";
 
 import { useCallback, useEffect, useState } from "react";
 import { PROVIDER_NAMES, type Provider } from "@/lib/types";
 import { safeHref } from "@/lib/url";
+import { getSession } from "@/lib/client/session";
+import { passStatus } from "@/lib/client/pass";
 
 interface Req {
   id: number;
@@ -33,6 +38,7 @@ interface Board {
 const KEY = "carreadi:admin";
 
 export default function AdminRequests() {
+  const tr = useText();
   const [token, setToken] = useState("");
   const [data, setData] = useState<{ requests: Req[]; approved: Board[]; support: Support[] } | null>(null);
   const [msg, setMsg] = useState("");
@@ -45,7 +51,7 @@ export default function AdminRequests() {
         body: body ? JSON.stringify(body) : undefined,
       });
       const j = (await res.json().catch(() => ({}))) as { error?: string; jobs?: number };
-      if (!res.ok) throw new Error(j.error || `Error ${res.status}`);
+      if (!res.ok) throw new Error(j.error || tr("Error {value0}", { value0: displayValue(res.status) }));
       return j;
     },
     [token],
@@ -57,11 +63,12 @@ export default function AdminRequests() {
       setMsg("");
     } catch (e) {
       setData(null);
-      setMsg(e instanceof Error ? e.message : "Failed");
+      setMsg(e instanceof Error ? e.message : tr("Failed"));
     }
   }, [call]);
 
   useEffect(() => {
+    void passStatus().then((s) => { if (s.owner) setToken(getSession() ?? ""); }).catch(() => {});
     try {
       setToken(sessionStorage.getItem(KEY) ?? "");
     } catch {}
@@ -73,10 +80,10 @@ export default function AdminRequests() {
   async function act(body: object, ok: string) {
     try {
       const r = await call("POST", body);
-      setMsg(r.jobs !== undefined ? `${ok} (${r.jobs} jobs). Live within ~30 minutes.` : ok);
+      setMsg(r.jobs !== undefined ? tr("{value0} ({value1} jobs). Live within ~30 minutes.", { value0: displayValue(ok), value1: displayValue(r.jobs) }) : ok);
       await refresh();
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "Failed");
+      setMsg(e instanceof Error ? e.message : tr("Failed"));
     }
   }
 
@@ -93,10 +100,11 @@ export default function AdminRequests() {
           setToken(t);
         }}
       >
-        <label className="label" htmlFor="t">Admin token</label>
-        <input id="t" name="t" type="password" autoComplete="off" className="field" />
-        {msg && <p className="text-sm text-bad">{msg}</p>}
-        <button className="btn">Open</button>
+        <p className="text-sm text-muted">{tr("Owners can ")}<a href="/signin" className="underline">{tr("sign in by email")}</a> {tr(" to open admin tools, or use an admin token below.")}</p>
+        <label className="label" htmlFor="t">{tr("Admin token")}</label>
+        <input dir="auto" id="t" name="t" type="password" autoComplete="off" className="field" />
+        {msg && <p className="text-sm text-bad">{tr(msg)}</p>}
+        <button className="btn">{tr("Open")}</button>
       </form>
     );
 
@@ -105,10 +113,10 @@ export default function AdminRequests() {
 
   return (
     <div className="space-y-8">
-      {msg && <p className="rounded-xl bg-accent-soft px-4 py-3 text-sm text-accent">{msg}</p>}
+      {msg && <p className="rounded-xl bg-accent-soft px-4 py-3 text-sm text-accent">{tr(msg)}</p>}
       <section>
-        <h2 className="mb-3 text-sm font-semibold">Lost passes ({data.support.filter((x) => x.status === "open").length} open)</h2>
-        {!data.support.some((x) => x.status === "open") && <p className="text-sm text-muted">No one needs help.</p>}
+        <h2 className="mb-3 text-sm font-semibold">{tr("Lost passes ({value0} open)", { value0: displayValue(data.support.filter((x) => x.status === "open").length) })}</h2>
+        {!data.support.some((x) => x.status === "open") && <p className="text-sm text-muted">{tr("No one needs help.")}</p>}
         <ul className="space-y-2">
           {data.support
             .filter((x) => x.status === "open")
@@ -123,28 +131,28 @@ ${live.reference}
 
 Open https://carreadi.sunkanmifafowora.workers.dev/plans, choose "Restore with your code" and paste it.
 `
-                : "Hi,\n\nWe couldn't find an active pass for this email. Could you reply with your Bachs receipt?\n";
+                : tr("Hi,\n\nWe couldn't find an active pass for this email. Could you reply with your Bachs receipt?\n");
               return (
                 <li key={x.id} className="card p-4 text-sm">
                   <p className="font-medium">{x.email}</p>
-                  <p className="text-xs text-muted">{new Date(x.created_at).toLocaleString()}</p>
-                  {x.note && <p className="mt-1 text-xs">“{x.note}”</p>}
+                  <p className="text-xs text-muted">{new Date(x.created_at).toLocaleString(clientLocale())}</p>
+                  {x.note && <p className="mt-1 text-xs">{tr("“{value0}”", { value0: displayValue(x.note) })}</p>}
                   <p className="mt-2 text-xs">
                     {x.passes.length
                       ? x.passes.map((p) => (
-                          <span key={p.reference} className="mr-2 inline-block rounded bg-paper px-1.5 py-0.5">
+                          <span key={p.reference} className="me-2 inline-block rounded bg-paper px-1.5 py-0.5">
                             {p.plan} · {p.status}
-                            {p.expires_at ? ` · ends ${new Date(p.expires_at).toLocaleDateString()}` : ""} · {p.analyses_used}/{p.analyses_limit} used ·{" "}
+                            {p.expires_at ? tr(" · ends {value0}", { value0: displayValue(new Date(p.expires_at).toLocaleDateString(clientLocale())) }) : ""} · {p.analyses_used}/{p.analyses_limit} {tr(" used ·")}{" "}
                             <code className="select-all">{p.reference}</code>
                           </span>
                         ))
-                      : "No pass found for this email (they may have paid without one; ask for the Bachs receipt)."}
+                      : tr("No pass found for this email (they may have paid without one; ask for the Bachs receipt).")}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <a className="btn px-4 py-2" href={`mailto:${encodeURIComponent(x.email)}?subject=${encodeURIComponent("Your Carreadi pass")}&body=${encodeURIComponent(body)}`}>
-                      {live ? "Email their restore code" : "Reply"}
+                    <a className="btn px-4 py-2" href={`mailto:${encodeURIComponent(x.email)}?subject=${encodeURIComponent(tr("Your Carreadi pass"))}&body=${encodeURIComponent(body)}`}>
+                      {live ? tr("Email their restore code") : tr("Reply")}
                     </a>
-                    <button className="btn-ghost" onClick={() => act({ action: "resolve_support", id: x.id }, "Marked resolved")}>Mark resolved</button>
+                    <button className="btn-ghost" onClick={() => act({ action: "resolve_support", id: x.id }, tr("Marked resolved"))}>{tr("Mark resolved")}</button>
                   </div>
                 </li>
               );
@@ -153,19 +161,19 @@ Open https://carreadi.sunkanmifafowora.workers.dev/plans, choose "Restore with y
       </section>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold">Pending ({pending.length})</h2>
-        {!pending.length && <p className="text-sm text-muted">Nothing to review.</p>}
+        <h2 className="mb-3 text-sm font-semibold">{tr("Pending ({value0})", { value0: displayValue(pending.length) })}</h2>
+        {!pending.length && <p className="text-sm text-muted">{tr("Nothing to review.")}</p>}
         <ul className="space-y-2">
           {pending.map((r) => (
             <li key={r.id} className="card p-4 text-sm">
               <ReqRow r={r} />
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 {r.provider ? (
-                  <ApproveButton defaultName={r.company} onApprove={(company) => act({ action: "approve", id: r.id, company }, `Added ${company}`)} />
+                  <ApproveButton defaultName={r.company} onApprove={(company) => act({ action: "approve", id: r.id, company }, tr("Added {value0}", { value0: displayValue(company) }))} />
                 ) : (
-                  <span className="text-xs text-muted">Not a supported board: add it by hand in lib/jobs/boards.ts if it has one.</span>
+                  <span className="text-xs text-muted">{tr("Not a supported board: add it by hand in lib/jobs/boards.ts if it has one.")}</span>
                 )}
-                <button className="btn-ghost" onClick={() => act({ action: "reject", id: r.id }, "Rejected")}>Reject</button>
+                <button className="btn-ghost" onClick={() => act({ action: "reject", id: r.id }, tr("Rejected"))}>{tr("Reject")}</button>
               </div>
             </li>
           ))}
@@ -173,24 +181,24 @@ Open https://carreadi.sunkanmifafowora.workers.dev/plans, choose "Restore with y
       </section>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold">Added from requests ({data.approved.length})</h2>
+        <h2 className="mb-3 text-sm font-semibold">{tr("Added from requests ({value0})", { value0: displayValue(data.approved.length) })}</h2>
         <ul className="divide-y divide-line rounded-2xl border border-line bg-white text-sm">
           {data.approved.map((b) => (
             <li key={`${b.provider}:${b.token}`} className="flex items-center justify-between px-4 py-2.5">
-              <span>{b.company} <span className="text-muted">· {PROVIDER_NAMES[b.provider]} / {b.token}</span></span>
-              <button className="text-xs text-bad underline" onClick={() => act({ action: "remove", provider: b.provider, token: b.token }, `Removed ${b.company}`)}>Remove</button>
+              <span>{b.company} <span className="text-muted">{tr("· {value0} / {value1}", { value0: displayValue(PROVIDER_NAMES[b.provider]), value1: displayValue(b.token) })}</span></span>
+              <button className="text-xs text-bad underline" onClick={() => act({ action: "remove", provider: b.provider, token: b.token }, tr("Removed {value0}", { value0: displayValue(b.company) }))}>{tr("Remove")}</button>
             </li>
           ))}
-          {!data.approved.length && <li className="px-4 py-2.5 text-muted">None yet.</li>}
+          {!data.approved.length && <li className="px-4 py-2.5 text-muted">{tr("None yet.")}</li>}
         </ul>
       </section>
 
       {handled.length > 0 && (
         <section>
-          <h2 className="mb-3 text-sm font-semibold">History</h2>
+          <h2 className="mb-3 text-sm font-semibold">{tr("History")}</h2>
           <ul className="space-y-1 text-xs text-muted">
             {handled.slice(0, 50).map((r) => (
-              <li key={r.id}>{r.status === "approved" ? "✓" : "✕"} {r.company} · {new Date(r.created_at).toLocaleDateString()}</li>
+              <li key={r.id}>{tr("{value0} {value1} · {value2}", { value0: displayValue(r.status === "approved" ? "✓" : "✕"), value1: displayValue(r.company), value2: displayValue(new Date(r.created_at).toLocaleDateString(clientLocale())) })}</li>
             ))}
           </ul>
         </section>
@@ -200,26 +208,25 @@ Open https://carreadi.sunkanmifafowora.workers.dev/plans, choose "Restore with y
 }
 
 function ReqRow({ r }: { r: Req }) {
+  const tr = useText();
   return (
     <div>
       <p className="font-medium">{r.company}</p>
       {/* Untrusted link from a visitor: http(s) only, no referrer, never auto-opened. */}
       <a href={safeHref(r.url)} target="_blank" rel="noopener noreferrer nofollow" className="break-all text-xs underline">{r.url}</a>
-      <p className="mt-1 text-xs text-muted">
-        {r.provider ? `${PROVIDER_NAMES[r.provider]} board "${r.token}" · ${r.jobs ?? "?"} open roles` : "Board not recognised"} ·{" "}
-        {new Date(r.created_at).toLocaleString()}
-      </p>
-      {r.note && <p className="mt-1 text-xs">“{r.note}”</p>}
+      <p className="mt-1 text-xs text-muted">{tr("{value0} ·{value1}{value2}", { value0: displayValue(r.provider ? `${PROVIDER_NAMES[r.provider]} board "${r.token}" · ${r.jobs ?? "?"} open roles` : tr("Board not recognised")), value1: displayValue(" "), value2: displayValue(new Date(r.created_at).toLocaleString(clientLocale())) })}</p>
+      {r.note && <p className="mt-1 text-xs">{tr("“{value0}”", { value0: displayValue(r.note) })}</p>}
     </div>
   );
 }
 
 function ApproveButton({ defaultName, onApprove }: { defaultName: string; onApprove: (company: string) => void }) {
+  const tr = useText();
   const [name, setName] = useState(defaultName);
   return (
     <span className="flex items-center gap-2">
-      <input aria-label="Company name to show" className="field w-44 py-1.5" value={name} onChange={(e) => setName(e.target.value)} />
-      <button className="btn px-4 py-2" onClick={() => onApprove(name.trim())} disabled={name.trim().length < 2}>Approve</button>
+      <input dir="auto" aria-label={tr("Company name to show")} className="field w-44 py-1.5" value={name} onChange={(e) => setName(e.target.value)} />
+      <button className="btn px-4 py-2" onClick={() => onApprove(name.trim())} disabled={name.trim().length < 2}>{tr("Approve")}</button>
     </span>
   );
 }

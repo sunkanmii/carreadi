@@ -5,8 +5,11 @@
 import { env } from "cloudflare:workers";
 import { getDb } from "./db";
 import { emailHasPaid, hashEmail, linkEmailToOrder, paidReferenceForToken, publicOrigin } from "./payments";
+import { direction, requestLocale, type Locale } from "../i18n";
+import { textFor } from "@/i18n/server";
 
 interface AccountEnv {
+  OWNER_EMAIL?: string;
   RESEND_API_KEY?: string;
   DATA_KEY?: string;
   /** Sender, e.g. "Carreadi <no-reply@carreadi.naijabukana.com>". */
@@ -56,6 +59,19 @@ function randomToken() {
 export const validAuthToken = (t: unknown): t is string => typeof t === "string" && /^[A-Za-z0-9_-]{40,60}$/.test(t);
 export const validEmail = (e: unknown): e is string => typeof e === "string" && e.length <= 254 && /^[^\s@<>()",;:]+@[^\s@<>()",;:]+\.[a-z]{2,}$/i.test(e.trim());
 
+/** Owner identity is configured on the server; access still requires a valid session. */
+export async function isOwnerAccount(account: string | null): Promise<boolean> {
+  const email = cfg().OWNER_EMAIL;
+  return !!account && !!email && validEmail(email) && account === await hashEmail(email);
+}
+
+export async function ownerFor(req: Request): Promise<boolean> {
+  if (!cfg().OWNER_EMAIL || !accountsEnabled()) return false;
+  const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+  if (!validAuthToken(token)) return false;
+  return isOwnerAccount(await accountFor(req));
+}
+
 // ---- encryption of saved checks (AES-GCM, key from DATA_KEY, bound to the account and check) ----
 
 let keyPromise: Promise<CryptoKey> | null = null;
@@ -93,7 +109,7 @@ export async function requestLink(req: Request, email: string, passToken?: strin
   if ((recent?.n ?? 0) >= 3) return "busy";
 
   const orderRef = passToken ? await paidReferenceForToken(passToken) : null;
-  const known = orderRef || (await emailHasPaid(emailHash)) || (await d.prepare("SELECT 1 FROM accounts WHERE email_hash = ?").bind(emailHash).first());
+  const known = await isOwnerAccount(emailHash) || orderRef || (await emailHasPaid(emailHash)) || (await d.prepare("SELECT 1 FROM accounts WHERE email_hash = ?").bind(emailHash).first());
   if (!known) return "sent";
 
   const token = randomToken();
@@ -102,25 +118,31 @@ export async function requestLink(req: Request, email: string, passToken?: strin
     .bind(await sha(`link:${token}`), emailHash, orderRef, now, now + LINK_MINUTES * 60_000)
     .run();
   const link = `${publicOrigin(req) ?? SITE}/signin?token=${token}`;
-  await sendLinkEmail(email.trim(), link);
+  await sendLinkEmail(email.trim(), link, requestLocale(req));
   return "sent";
 }
 
-async function sendLinkEmail(to: string, link: string) {
-  const text = `Sign in to Carreadi\n\nTap this link to sign in and see your saved checks on this device:\n${link}\n\nThe link works once and expires in ${LINK_MINUTES} minutes. If you didn't ask for it, ignore this email.\n\nCarreadi · carreadi.naijabukana.com`;
-  const html = `<!doctype html><html><body style="margin:0;background:#fbfaf8;font-family:Inter,Segoe UI,Arial,sans-serif;color:#16181d">
+async function sendLinkEmail(to: string, link: string, locale: Locale) {
+  const t = await textFor(locale);
+  const heading = t("Sign in to Carreadi");
+  const instruction = t("Tap the button to sign in and see your saved checks on this device.");
+  const expiry = t("The link works once and expires in {minutes} minutes.", { minutes: LINK_MINUTES });
+  const ignore = t("If you didn’t ask for it, ignore this email.");
+  const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const text = `${heading}\n\n${instruction}\n${link}\n\n${expiry} ${ignore}\n\nCarreadi · carreadi.naijabukana.com`;
+  const html = `<!doctype html><html lang="${locale}" dir="${direction(locale)}"><body style="margin:0;background:#fbfaf8;font-family:Segoe UI,Arial,sans-serif;color:#16181d">
 <div style="max-width:480px;margin:0 auto;padding:32px 24px">
 <p style="font-size:15px;font-weight:700;margin:0 0 24px">carreadi</p>
-<h1 style="font-size:22px;margin:0 0 8px">Sign in to Carreadi</h1>
-<p style="font-size:15px;line-height:1.5;color:#444;margin:0 0 24px">Tap the button to sign in and see your saved checks on this device.</p>
-<a href="${link}" style="display:inline-block;background:#1f5f4a;color:#fff;text-decoration:none;font-weight:600;font-size:15px;padding:13px 22px;border-radius:999px">Sign in</a>
-<p style="font-size:13px;line-height:1.5;color:#6b6f78;margin:24px 0 0">The link works once and expires in ${LINK_MINUTES} minutes. If you didn&rsquo;t ask for it, ignore this email.</p>
+<h1 style="font-size:22px;margin:0 0 8px">${escape(heading)}</h1>
+<p style="font-size:15px;line-height:1.5;color:#444;margin:0 0 24px">${escape(instruction)}</p>
+<a href="${escape(link)}" style="display:inline-block;background:#1f5f4a;color:#fff;text-decoration:none;font-weight:600;font-size:15px;padding:13px 22px;border-radius:999px">${escape(t("Sign in"))}</a>
+<p style="font-size:13px;line-height:1.5;color:#6b6f78;margin:24px 0 0">${escape(expiry)} ${escape(ignore)}</p>
 <p style="font-size:12px;color:#6b6f78;margin:32px 0 0">Carreadi · carreadi.naijabukana.com</p>
 </div></body></html>`;
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { authorization: `Bearer ${cfg().RESEND_API_KEY}`, "content-type": "application/json" },
-    body: JSON.stringify({ from: cfg().EMAIL_FROM || DEFAULT_FROM, to: [to], subject: "Your Carreadi sign-in link", text, html }),
+    body: JSON.stringify({ from: cfg().EMAIL_FROM || DEFAULT_FROM, to: [to], subject: t("Your Carreadi sign-in link"), text, html }),
   });
   if (!res.ok) {
     console.error("resend_failed", res.status);

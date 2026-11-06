@@ -27,7 +27,7 @@ export interface Roadmap {
 
 const IMPORTANCE_RANK = { required: 0, preferred: 1, bonus: 2 } as const;
 
-const key = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+const key = (s: string) => s.toLowerCase().normalize("NFC").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 
 /**
  * Builds the roadmap from gaps. When refreshing, completed/edited tasks for the same

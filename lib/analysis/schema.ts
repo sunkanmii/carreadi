@@ -30,6 +30,8 @@ export type Finding = z.infer<typeof FindingSchema> & { evidenceVerified: boolea
 export type ModelOutput = z.infer<typeof ModelOutputSchema>;
 
 export interface Analysis {
+  /** Language of generated guidance; evidence quotes retain the résumé's original text. */
+  locale?: "en" | "fr" | "es" | "ar";
   roleTitle: string;
   summary: string;
   demonstratedSkills: string[];

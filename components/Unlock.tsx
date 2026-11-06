@@ -1,4 +1,6 @@
 "use client";
+import { useText, displayValue } from "@/lib/useText";
+
 
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
@@ -9,6 +11,7 @@ import { Spinner } from "./Analyzer";
 
 /** Shown on free previews: what's held back, and the way to see it. */
 export default function Unlock({ locked, onUnlocked }: { locked: number; onUnlocked: () => void }) {
+  const tr = useText();
   const [pass, setPass] = useState<PassStatus | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -23,7 +26,7 @@ export default function Unlock({ locked, onUnlocked }: { locked: number; onUnloc
       await recheckWithPass();
       onUnlocked();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't unlock right now.");
+      setError(e instanceof Error ? e.message : tr("Couldn't unlock right now."));
     } finally {
       setBusy(false);
     }
@@ -41,23 +44,21 @@ export default function Unlock({ locked, onUnlocked }: { locked: number; onUnloc
         ))}
       </div>
       {pass && !pass.active && pass.plan && (
-        <p className="mb-2 text-center text-sm text-warn">Your pass has ended or has no analyses left, so this is a free preview.</p>
+        <p className="mb-2 text-center text-sm text-warn">{tr("Your pass has ended or has no analyses left, so this is a free preview.")}</p>
       )}
-      <p className="text-center font-medium">
-        🔒 {locked > 0 ? `${locked} more gap${locked === 1 ? "" : "s"} and your full roadmap` : "Your full roadmap"} {locked === 1 ? "is" : "are"} locked
-      </p>
-      <p className="mt-1 text-center text-sm text-muted">See what’s missing, with steps, deliverables and resources to close each gap.</p>
+      <p className="text-center font-medium">{locked > 0 ? tr("Your full roadmap and {count, plural, one {# more gap are locked.} other {# more gaps are locked.}}", { count: locked }) : tr("Your full roadmap is locked.")}</p>
+      <p className="mt-1 text-center text-sm text-muted">{tr("See what’s missing, with steps, deliverables and resources to close each gap.")}</p>
       <div className="mt-4">
         {pass?.active ? (
           <button className="btn w-full" disabled={busy} onClick={unlock}>
             {busy && <Spinner />}
-            {busy ? "Unlocking…" : "Unlock with my pass"}
+            {busy ? tr("Unlocking…") : pass.owner ? tr("Unlock with owner access") : tr("Unlock with my pass")}
           </button>
         ) : (
           <BuyPass compact />
         )}
       </div>
-      {error && <p role="alert" className="mt-3 text-center text-sm text-bad">{error}</p>}
+      {error && <p role="alert" className="mt-3 text-center text-sm text-bad">{tr(error)}</p>}
     </motion.div>
   );
 }

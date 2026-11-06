@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { ownerFor } from "./account";
 import { FREE_LIMIT, FREE_WEEKLY_LIMIT } from "../plans";
 
 export const FREE_ANALYSES_PER_DAY = FREE_LIMIT;
@@ -108,6 +109,7 @@ export async function dailyLimit(req: Request, scope: string, max: number): Prom
  * Compares SHA-256 digests in constant time. With no ADMIN_TOKEN set, admin is switched off.
  */
 export async function requireAdmin(req: Request): Promise<Response | null> {
+  if (await ownerFor(req)) return null;
   const expected = (bindings as Bindings & { ADMIN_TOKEN?: string }).ADMIN_TOKEN;
   if (!expected || expected.length < 16) return json({ error: "Admin is not set up. Add an ADMIN_TOKEN secret (16+ characters)." }, 503);
   const given = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");

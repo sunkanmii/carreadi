@@ -1,4 +1,10 @@
 "use client";
+import { clientLocale } from "@/lib/client/locale";
+
+import { useText, displayValue } from "@/lib/useText";
+import { rovingKeys } from "@/lib/client/keyboard";
+import { localizeReason } from "@/lib/localizeReason";
+
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -19,6 +25,7 @@ import SourcePicker, { useSources } from "./SourcePicker";
 type JobMode = "match" | "pick" | "paste";
 
 export default function Analyzer() {
+  const tr = useText();
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [resume, setResume] = useState("");
@@ -43,7 +50,7 @@ export default function Analyzer() {
     const s = load();
     if (s.resumeText) {
       setResume(s.resumeText);
-      setFileName("Saved résumé");
+      setFileName(tr("Saved résumé"));
     }
     if (s.prefs) setPrefs(s.prefs);
     else if (s.resumeText) setPrefs((p) => ({ ...p, careerPath: guessCareerPath(s.resumeText!) }));
@@ -58,7 +65,7 @@ export default function Analyzer() {
       setMode("pick");
       api<{ job: Job }>(`/api/jobs/${encodeURIComponent(id)}`)
         .then(({ job }) => setPicked({ ...job, snippet: "" }))
-        .catch(() => setError("That job is no longer listed."));
+        .catch(() => setError(tr("That job is no longer listed.")));
     }
   }, []);
 
@@ -68,7 +75,7 @@ export default function Analyzer() {
     setReading(true);
     try {
       const text = await extractResume(file);
-      setNotice(text.length >= MAX_RESUME_CHARS ? "Your résumé is very long, so we kept the first 30,000 characters (about 4,500 words). Trim it for the best result." : "");
+      setNotice(text.length >= MAX_RESUME_CHARS ? tr("Your résumé is very long, so we kept the first 30,000 characters (about 4,500 words). Trim it for the best result.") : "");
       setResume(text);
       track("resume_loaded", { method: "upload", file_type: file.name.split(".").pop()?.toLowerCase(), words: Math.round(text.split(/s+/).length / 100) * 100 });
       setFileName(file.name);
@@ -78,7 +85,7 @@ export default function Analyzer() {
       setPicked(null);
       setMode("match");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't read that file.");
+      setError(e instanceof Error ? e.message : tr("Couldn't read that file."));
     } finally {
       setReading(false);
     }
@@ -139,7 +146,7 @@ export default function Analyzer() {
         return;
       }
       track("analysis_failed", { reason: e instanceof Error ? e.message.slice(0, 80) : "unknown" });
-      setError(e instanceof Error ? e.message : "Analysis failed.");
+      setError(e instanceof Error ? e.message : tr("Analysis failed."));
       setBusy(false);
       setReconnecting(false);
     }
@@ -151,13 +158,13 @@ export default function Analyzer() {
       {!resumeReady || pasting ? (
         pasting ? (
           <div className="card p-3">
-            <label htmlFor="resume-text" className="sr-only">Résumé text</label>
-            <textarea
+            <label htmlFor="resume-text" className="sr-only">{tr("Résumé text")}</label>
+            <textarea dir="auto"
               id="resume-text"
               autoFocus
               rows={8}
               className="field resize-y border-0 p-2"
-              placeholder="Paste your résumé text"
+              placeholder={tr("Paste your résumé text")}
               maxLength={MAX_RESUME_CHARS}
               value={resume}
               onChange={(e) => setResume(e.target.value)}
@@ -165,16 +172,16 @@ export default function Analyzer() {
             <div className="flex items-center justify-between px-2 pt-1 text-xs text-muted">
               <span>
                 {resume.trim().length < 200
-                  ? `${Math.max(0, 200 - resume.trim().length)} more characters needed`
-                  : `${resume.length.toLocaleString()} / ${MAX_RESUME_CHARS.toLocaleString()} characters`}
+                  ? tr("{value0} more characters needed", { value0: displayValue(Math.max(0, 200 - resume.trim().length)) })
+                  : tr("{value0} / {value1} characters", { value0: displayValue(resume.length.toLocaleString(clientLocale())), value1: displayValue(MAX_RESUME_CHARS.toLocaleString(clientLocale())) })}
               </span>
               <button className="underline hover:text-ink" onClick={() => {
                   setPasting(false);
-                  setFileName(resumeReady ? "Pasted text" : "");
+                  setFileName(resumeReady ? tr("Pasted text") : "");
                   if (resumeReady) track("resume_loaded", { method: "paste", words: Math.round(resume.split(/s+/).length / 100) * 100 });
                   if (resumeReady) setPrefs((p) => ({ ...p, careerPath: guessCareerPath(resume) || p.careerPath }));
                 }}>
-                {resumeReady ? "Done" : "Upload instead"}
+                {resumeReady ? tr("Done") : tr("Upload instead")}
               </button>
             </div>
           </div>
@@ -185,14 +192,14 @@ export default function Analyzer() {
             onDrop={(e) => { e.preventDefault(); setDragging(false); onFile(e.dataTransfer.files[0]); }}
             className={`card flex flex-col items-center px-6 py-12 text-center transition ${dragging ? "border-accent bg-accent-soft" : "border-dashed"}`}
           >
-            <input ref={fileRef} type="file" accept=".pdf,.docx,.txt,.md" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} />
+            <input dir="auto" ref={fileRef} type="file" accept=".pdf,.docx,.txt,.md" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} />
             <button className="btn" onClick={() => fileRef.current?.click()} disabled={reading}>
               {reading ? <Spinner /> : <UploadIcon />}
-              {reading ? "Reading…" : "Upload résumé"}
+              {reading ? tr("Reading…") : tr("Upload résumé")}
             </button>
             <p className="mt-3 text-xs text-muted">
-              PDF, DOCX or TXT · up to 5 MB, about 4,500 words · read in your browser ·{" "}
-              <button className="underline hover:text-ink" onClick={() => setPasting(true)}>paste text</button>
+              {tr("PDF, DOCX or TXT · up to 5 MB, about 4,500 words · read in your browser ·")}{" "}
+              <button className="underline hover:text-ink" onClick={() => setPasting(true)}>{tr("paste text")}</button>
             </p>
           </div>
         )
@@ -202,50 +209,52 @@ export default function Analyzer() {
             <Check />
             {/* ph-mask: file names usually contain the person's name. */}
             <span className="ph-mask truncate">{fileName || "Résumé"}</span>
-            <span className="shrink-0 text-muted">· {resume.split(/\s+/).length.toLocaleString()} words</span>
+            <span className="shrink-0 text-muted">{tr("· {value0} words", { value0: displayValue(resume.split(/\s+/).length.toLocaleString(clientLocale())) })}</span>
           </span>
-          <button className="text-xs text-muted underline hover:text-ink" onClick={() => { setResume(""); setFileName(""); }}>
-            Replace
-          </button>
+          <button className="text-xs text-muted underline hover:text-ink" onClick={() => { setResume(""); setFileName(""); }}>{tr("Replace")}</button>
         </div>
       )}
 
       {/* Step 2 — target job */}
       {resumeReady && !pasting && (
         <div className="card space-y-4 p-4">
-          <div className="flex gap-1 rounded-full bg-paper p-1 text-sm" role="tablist">
+          <div className="flex gap-1 rounded-full bg-paper p-1 text-sm" role="tablist" aria-label={tr("Choose a target job")} onKeyDown={rovingKeys}>
             {(["match", "pick", "paste"] as const).map((m) => (
               <button
                 key={m}
                 role="tab"
+                id={`job-tab-${m}`}
+                aria-controls="job-panel"
+                tabIndex={mode === m ? 0 : -1}
                 aria-selected={mode === m}
                 onClick={() => { setMode(m); if (m !== "paste") setPicked(null); }}
                 className={`flex-1 rounded-full py-1.5 ${mode === m ? "bg-white font-medium shadow-sm" : "text-muted"}`}
               >
-                {m === "match" ? "Matched for you" : m === "pick" ? "Search jobs" : "Paste a job"}
+                {m === "match" ? tr("Matched for you") : m === "pick" ? tr("Search jobs") : tr("Paste a job")}
               </button>
             ))}
           </div>
 
+          <div role="tabpanel" id="job-panel" aria-labelledby={`job-tab-${mode}`} tabIndex={0}>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div>
-              <label className="label" htmlFor="path">Career path</label>
+              <label className="label" htmlFor="path">{tr("Career path")}</label>
               <select id="path" className="field" value={prefs.careerPath} onChange={(e) => setPrefs({ ...prefs, careerPath: e.target.value })}>
-                <option value="">Any</option>
-                {CAREER_PATHS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+                <option value="">{tr("Any")}</option>
+                {CAREER_PATHS.map((c) => <option key={c.id} value={c.id}>{tr(c.label)}</option>)}
               </select>
             </div>
             <div>
-              <label className="label" htmlFor="loc">Location</label>
-              <input id="loc" className="field" placeholder="e.g. United States" value={prefs.location} onChange={(e) => setPrefs({ ...prefs, location: e.target.value })} />
+              <label className="label" htmlFor="loc">{tr("Location")}</label>
+              <input dir="auto" id="loc" className="field" placeholder={tr("e.g. United States")} value={prefs.location} onChange={(e) => setPrefs({ ...prefs, location: e.target.value })} />
             </div>
             <div>
-              <label className="label" htmlFor="remote">Work style</label>
+              <label className="label" htmlFor="remote">{tr("Work style")}</label>
               <select id="remote" className="field" value={prefs.remote} onChange={(e) => setPrefs({ ...prefs, remote: e.target.value as Prefs["remote"] })}>
-                <option value="any">Any</option>
-                <option value="remote">Remote</option>
-                <option value="hybrid">Hybrid</option>
-                <option value="onsite">On-site</option>
+                <option value="any">{tr("Any")}</option>
+                <option value="remote">{tr("Remote")}</option>
+                <option value="hybrid">{tr("Hybrid")}</option>
+                <option value="onsite">{tr("On-site")}</option>
               </select>
             </div>
           </div>
@@ -257,8 +266,8 @@ export default function Analyzer() {
             <MatchList resume={resume} prefs={prefs} sources={sources} picked={picked} onPick={setPicked} />
           ) : mode === "paste" ? (
             <div>
-              <label htmlFor="job-text" className="sr-only">Job description</label>
-              <textarea id="job-text" rows={5} className="field resize-y" placeholder="Paste a job description from anywhere" value={jobText} onChange={(e) => setJobText(e.target.value)} />
+              <label htmlFor="job-text" className="sr-only">{tr("Job description")}</label>
+              <textarea dir="auto" id="job-text" rows={5} className="field resize-y" placeholder={tr("Paste a job description from anywhere")} value={jobText} onChange={(e) => setJobText(e.target.value)} />
             </div>
           ) : (
             <JobPicker sources={sources} picked={picked} onPick={setPicked} />
@@ -266,29 +275,30 @@ export default function Analyzer() {
 
 
           <label className="flex items-start gap-2.5 text-xs leading-relaxed text-muted">
-            <input type="checkbox" className="mt-0.5 size-4 accent-[var(--color-accent)]" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+            <input dir="auto" type="checkbox" className="mt-0.5 size-4 accent-[var(--color-accent)]" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
             <span>
-              Send my CV text to our AI for this analysis. It isn&rsquo;t stored on our servers.{" "}
-              <Link href="/privacy" className="underline">Details</Link>
+              {tr("Send my CV text to our AI for this analysis. It isn’t stored on our servers.")}{" "}
+              <Link href="/privacy" className="underline">{tr("Details")}</Link>
             </span>
           </label>
 
           <button className="btn w-full" disabled={!canSubmit} onClick={() => submit()}>
             {busy && <Spinner />}
-            {busy ? "Analyzing your CV…" : "Check my career readiness"}
+            {busy ? tr("Analyzing your CV…") : tr("Check my career readiness")}
           </button>
           {busy && <AnalyzeProgress key={reconnecting ? "re" : "first"} reconnecting={reconnecting} />}
+          </div>
         </div>
       )}
 
-      {notice && !error && <p className="rounded-xl bg-warn-soft px-4 py-3 text-sm text-warn">{notice}</p>}
+      {notice && !error && <p className="rounded-xl bg-warn-soft px-4 py-3 text-sm text-warn">{tr(notice)}</p>}
       {error && (
         <p role="alert" className="rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">
-          {error}
+          {tr(error)}
           {/pass/i.test(error) && (
             <>
               {" "}
-              <Link href="/plans" className="font-medium underline">See passes</Link>
+              <Link href="/plans" className="font-medium underline">{tr("See passes")}</Link>
             </>
           )}
         </p>
@@ -296,7 +306,7 @@ export default function Analyzer() {
 
       {!resumeReady && (
         <p className="pt-3 text-center text-sm">
-          <Link href="/jobs" className="text-muted underline-offset-4 hover:text-ink hover:underline">Explore jobs →</Link>
+          <Link href="/jobs" className="text-muted underline-offset-4 hover:text-ink hover:underline">{tr("Explore jobs →")}</Link>
         </p>
       )}
     </div>
@@ -326,6 +336,7 @@ const TIER_ORDER: Record<Tier, number> = { apply: 0, review: 1, future: 2 };
  * and preselects the best one, so the user doesn't have to hunt for a job first.
  */
 function MatchList({ resume, prefs, sources, picked, onPick }: { resume: string; prefs: Prefs; sources: Provider[]; picked: JobSummary | null; onPick: (j: JobSummary | null) => void }) {
+  const tr = useText();
   const [recs, setRecs] = useState<Recommendation[] | null>(null);
   const [note, setNote] = useState("");
   const [lockedCount, setLockedCount] = useState(0);
@@ -343,7 +354,7 @@ function MatchList({ resume, prefs, sources, picked, onPick }: { resume: string;
         let msg = "";
         if (!res.recommendations.length && prefs.careerPath) {
           res = await get();
-          msg = `No live ${careerById(prefs.careerPath)?.label ?? ""} roles right now. These are the closest by skills.`;
+          msg = tr("No live {value0} roles right now. These are the closest by skills.", { value0: displayValue(careerById(prefs.careerPath)?.label ?? "") });
         }
         const list = res.recommendations.sort((a, b) => TIER_ORDER[a.tier] - TIER_ORDER[b.tier]).slice(0, 6);
         if (!live) return;
@@ -361,55 +372,56 @@ function MatchList({ resume, prefs, sources, picked, onPick }: { resume: string;
     };
   }, [resume, prefs.careerPath, prefs.location, prefs.remote, sources, onPick]);
 
-  if (!recs) return <p className="flex items-center gap-2 px-1 py-3 text-xs text-muted"><Spinner /> Finding live jobs that fit your résumé…</p>;
-  if (!recs.length) return <p className="px-1 py-3 text-xs text-muted">No close matches in today&rsquo;s live jobs. Try another career path, turn on more job sources, paste a job, or{" "}
-        <Link href="/request" className="underline">request a company</Link>.</p>;
+  if (!recs) return <p className="flex items-center gap-2 px-1 py-3 text-xs text-muted"><Spinner /> {tr(" Finding live jobs that fit your résumé…")}</p>;
+  if (!recs.length) return <p className="px-1 py-3 text-xs text-muted">{tr("No close matches in today’s live jobs. Try another career path, turn on more job sources, paste a job, or")}{" "}
+        <Link href="/request" className="underline">{tr("request a company")}</Link>.</p>;
 
   return (
     <div>
       {note && <p className="mb-2 px-1 text-xs text-muted">{note}</p>}
       {lockedCount > 0 && (
         <p className="mb-2 px-1 text-xs text-muted">
-          Your top {recs.length} matches. 🔒 {lockedCount} more unlock with a{" "}
-          <Link href="/plans" className="font-medium text-accent underline">pass</Link>.
+          {tr("Showing your top {shown} matches. Additional matches: {count}. Unlock with a", { shown: recs.length, count: lockedCount })}{" "}
+          <Link href="/plans" className="font-medium text-accent underline">{tr("pass")}</Link>.
         </p>
       )}
-      {!prefs.location && <p className="mb-2 px-1 text-xs text-muted">Add your location above to see which jobs you can actually take.</p>}
-      <ul className="space-y-1" role="radiogroup" aria-label="Matched jobs">
+      {!prefs.location && <p className="mb-2 px-1 text-xs text-muted">{tr("Add your location above to see which jobs you can actually take.")}</p>}
+      <ul className="space-y-1" role="radiogroup" aria-label={tr("Matched jobs")} onKeyDown={(event) => rovingKeys(event, "radio")}>
         {recs.map((r) => {
           const on = r.job.id === picked?.id;
           return (
-            <li key={r.job.id}>
+            <li key={r.job.id} role="none">
               <button
                 role="radio"
                 aria-checked={on}
+                tabIndex={on || (!recs.some((item) => item.job.id === picked?.id) && r === recs[0]) ? 0 : -1}
                 onClick={() => { onPick(r.job); track("job_selected", { from: "match", tier: r.tier, rank: recs.indexOf(r) + 1 }); }}
-                className={`flex w-full items-start gap-3 rounded-xl border px-3 py-2.5 text-left text-sm transition ${on ? "border-accent bg-accent-soft" : "border-transparent hover:bg-paper"}`}
+                className={`flex w-full items-start gap-3 rounded-xl border px-3 py-2.5 text-start text-sm transition ${on ? "border-accent bg-accent-soft" : "border-transparent hover:bg-paper"}`}
               >
                 <span className={`mt-1 size-3.5 shrink-0 rounded-full border-2 ${on ? "border-accent bg-accent" : "border-line"}`} />
                 <span className="min-w-0 flex-1">
                   <span className="block font-medium">{r.job.title}</span>
                   {/* Full location, never truncated: it decides whether you can take the job. */}
-                  <span className="block text-xs break-words text-muted">{r.job.company} · {r.job.location}</span>
+                  <span className="block text-xs break-words text-muted">{tr("{value0} · {value1}", { value0: displayValue(r.job.company), value1: displayValue(r.job.location) })}</span>
                   <span className="mt-1.5 flex flex-wrap gap-1 text-[11px]">
                     {r.listed > 0 && (
                       <span
                         className={`rounded-full px-2 py-0.5 ${r.matched.length * 2 >= r.listed ? "bg-accent-soft text-accent" : "bg-paper text-muted"}`}
-                        title={[r.matched.length && `You have: ${r.matched.join(", ")}`, r.missing.length && `Not on your résumé: ${r.missing.join(", ")}`].filter(Boolean).join(" · ")}
+                        title={[r.matched.length && tr("You have: {value0}", { value0: displayValue(r.matched.join(", ")) }), r.missing.length && tr("Not on your résumé: {value0}", { value0: displayValue(r.missing.join(", ")) })].filter(Boolean).join(" · ")}
                       >
                         {r.listed === 1
-                          ? r.matched.length ? "You have the 1 skill it lists" : "You don't have the 1 skill it lists"
-                          : `You have ${r.matched.length} of the ${r.listed} skills it lists`}
+                          ? r.matched.length ? tr("You have the 1 skill it lists") : tr("You don't have the 1 skill it lists")
+                          : tr("You have {value0} of the {value1} skills it lists", { value0: displayValue(r.matched.length), value1: displayValue(r.listed) })}
                       </span>
                     )}
                     {fitNotes(r, prefs.location).map((n) => (
                       <span key={n.text} className={`rounded-full px-2 py-0.5 ${n.ok ? "bg-accent-soft text-accent" : "bg-warn-soft text-warn"}`}>
-                        {n.text}
+                        {localizeReason(n.text, tr)}
                       </span>
                     ))}
                   </span>
                 </span>
-                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] ${r.tier === "apply" ? "bg-accent text-white" : "bg-paper text-muted"}`}>{TIER_LABEL[r.tier]}</span>
+                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] ${r.tier === "apply" ? "bg-accent text-white" : "bg-paper text-muted"}`}>{tr(TIER_LABEL[r.tier])}</span>
               </button>
             </li>
           );
@@ -420,6 +432,7 @@ function MatchList({ resume, prefs, sources, picked, onPick }: { resume: string;
 }
 
 function JobPicker({ sources, picked, onPick }: { sources: Provider[]; picked: JobSummary | null; onPick: (j: JobSummary | null) => void }) {
+  const tr = useText();
   const [q, setQ] = useState("");
   const [results, setResults] = useState<JobSummary[]>([]);
   const [loading, setLoading] = useState(false);
@@ -443,23 +456,23 @@ function JobPicker({ sources, picked, onPick }: { sources: Provider[]; picked: J
   if (picked)
     return (
       <div className="flex items-center justify-between rounded-xl bg-paper px-3.5 py-2.5 text-sm">
-        <span className="min-w-0 truncate"><b className="font-medium">{picked.title}</b> <span className="text-muted">· {picked.company}</span></span>
-        <button className="ml-3 shrink-0 text-xs text-muted underline" onClick={() => onPick(null)}>Change</button>
+        <span className="min-w-0 truncate"><b className="font-medium">{picked.title}</b> <span className="text-muted">{tr("· {value0}", { value0: displayValue(picked.company) })}</span></span>
+        <button className="ms-3 shrink-0 text-xs text-muted underline" onClick={() => onPick(null)}>{tr("Change")}</button>
       </div>
     );
 
   return (
     <div>
-      <label htmlFor="job-q" className="sr-only">Search jobs</label>
-      <input id="job-q" className="field" placeholder="Search title or company" value={q} onChange={(e) => setQ(e.target.value)} />
+      <label htmlFor="job-q" className="sr-only">{tr("Search jobs")}</label>
+      <input dir="auto" id="job-q" className="field" placeholder={tr("Search title or company")} value={q} onChange={(e) => setQ(e.target.value)} />
       <ul className="mt-2 max-h-56 overflow-y-auto">
-        {loading && !results.length && <li className="px-2 py-3 text-xs text-muted">Loading live jobs…</li>}
-        {!loading && !results.length && <li className="px-2 py-3 text-xs text-muted">No matching jobs.</li>}
+        {loading && !results.length && <li className="px-2 py-3 text-xs text-muted">{tr("Loading live jobs…")}</li>}
+        {!loading && !results.length && <li className="px-2 py-3 text-xs text-muted">{tr("No matching jobs.")}</li>}
         {results.map((j) => (
           <li key={j.id}>
-            <button className="w-full rounded-lg px-2.5 py-2 text-left text-sm hover:bg-paper" onClick={() => onPick(j)}>
+            <button className="w-full rounded-lg px-2.5 py-2 text-start text-sm hover:bg-paper" onClick={() => onPick(j)}>
               <span className="font-medium">{j.title}</span>
-              <span className="block text-xs text-muted">{j.company} · {j.location}</span>
+              <span className="block text-xs text-muted">{tr("{value0} · {value1}", { value0: displayValue(j.company), value1: displayValue(j.location) })}</span>
             </button>
           </li>
         ))}

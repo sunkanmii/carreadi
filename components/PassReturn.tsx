@@ -1,4 +1,5 @@
 "use client";
+import { useText, displayValue } from "@/lib/useText";
 
 import { motion } from "motion/react";
 import Link from "next/link";
@@ -13,6 +14,7 @@ import { Spinner } from "./Analyzer";
 
 /** Landing page after Bachs checkout: confirms the payment with the server, then unlocks. */
 export default function PassReturn() {
+  const tr = useText();
   const router = useRouter();
   const [status, setStatus] = useState<PassStatus | null>(null);
   const [gaveUp, setGaveUp] = useState(false);
@@ -49,15 +51,21 @@ export default function PassReturn() {
       await recheckWithPass();
       router.push("/results");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't run the analysis.");
+      setError(e instanceof Error ? e.message : tr("Couldn't run the analysis."));
       setBusy(false);
     }
   }
 
+  if (status?.owner) return (
+    <Box title={tr("Owner access is active")}>
+      {tr("All premium features are available without a pass. ")}<Link href="/" className="underline">{tr("Start an analysis")}</Link> {tr(" or ")}<Link href="/admin" className="underline">{tr("open admin tools")}</Link>.
+    </Box>
+  );
+
   if (!getPass())
     return (
-      <Box title="This browser doesn't have the pass">
-        If you paid on another device or browser, use your restore code on the <Link href="/plans" className="underline">Plans page</Link>.
+      <Box title={tr("This browser doesn't have the pass")}>
+        {tr("If you paid on another device or browser, use your restore code on the ")}<Link href="/plans" className="underline">{tr("Plans page")}</Link>.
       </Box>
     );
 
@@ -67,57 +75,56 @@ export default function PassReturn() {
         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300, damping: 15, delay: 0.1 }} className="mx-auto flex size-12 items-center justify-center rounded-full bg-accent text-xl text-white">
           ✓
         </motion.div>
-        <h1 className="mt-4 text-xl font-semibold">Your {PASSES[status.plan].name.toLowerCase()} is active</h1>
-        <p className="mt-1 text-sm text-muted">
-          {daysLeft(status.expiresAt)} day{daysLeft(status.expiresAt) === 1 ? "" : "s"} · {status.analysesLeft} full analyses
-        </p>
+        <h1 className="mt-4 text-xl font-semibold">{tr("Your {value0} is active", { value0: displayValue(tr(PASSES[status.plan].name)) })}</h1>
+        <p className="mt-1 text-sm text-muted">{tr("Days left: {days} · Full analyses: {analyses}", { days: daysLeft(status.expiresAt), analyses: status.analysesLeft ?? 0 })}</p>
         <p className="mt-4 text-xs text-muted">
-          Restore code for other devices: <code className="ph-mask rounded bg-paper px-1.5 py-0.5 text-ink select-all">{getPass()?.reference}</code>
+          {tr("Restore code for other devices: ")}<code className="ph-mask rounded bg-paper px-1.5 py-0.5 text-ink select-all">{getPass()?.reference}</code>
         </p>
         {canRecheck() ? (
           <button className="btn mt-6 w-full" disabled={busy} onClick={unlock}>
             {busy && <Spinner />}
-            {busy ? "Unlocking your full results…" : "Unlock my full results"}
+            {busy ? tr("Unlocking your full results…") : tr("Unlock my full results")}
           </button>
         ) : (
-          <Link href="/" className="btn mt-6 w-full">Start an analysis</Link>
+          <Link href="/" className="btn mt-6 w-full">{tr("Start an analysis")}</Link>
         )}
-        {error && <p role="alert" className="mt-3 text-sm text-bad">{error}</p>}
+        {error && <p role="alert" className="mt-3 text-sm text-bad">{tr(error)}</p>}
         <p className="mt-5 text-xs text-muted">
-          ☁️ Keep your checks on any device, even after your pass ends:{" "}
-          <Link href="/signin" className="font-medium text-accent underline">sign in with your email</Link>
+          {tr("☁️ Keep your checks on any device, even after your pass ends:")}{" "}
+          <Link href="/signin" className="font-medium text-accent underline">{tr("sign in with your email")}</Link>
         </p>
       </motion.div>
     );
 
   if (status?.status === "failed" || status?.status === "reversed")
     return (
-      <Box title="Payment not completed">
-        Nothing was charged, or the payment was refunded. <Link href="/plans" className="underline">Try again</Link>.
+      <Box title={tr("Payment not completed")}>
+        {tr("Nothing was charged, or the payment was refunded. ")}<Link href="/plans" className="underline">{tr("Try again")}</Link>.
       </Box>
     );
 
   return (
-    <Box title={gaveUp ? "Still confirming your payment" : "Confirming your payment…"}>
+    <Box title={gaveUp ? tr("Still confirming your payment") : tr("Confirming your payment…")}>
       {gaveUp ? (
         <>
-          This can take a few minutes with bank transfers. <b>Don&rsquo;t pay again.</b> Refresh this page shortly. Your restore code:{" "}
+          {tr("This can take a few minutes with bank transfers. ")}<b>{tr("Don’t pay again.")}</b> {tr(" Refresh this page shortly. Your restore code:")}{" "}
           <code className="ph-mask rounded bg-paper px-1.5 py-0.5 text-ink select-all">{getPass()?.reference}</code>
         </>
       ) : (
-        <span className="inline-flex items-center gap-2"><Spinner /> Checking with the payment provider.</span>
+        <span className="inline-flex items-center gap-2"><Spinner /> {tr(" Checking with the payment provider.")}</span>
       )}
     </Box>
   );
 }
 
 function Box({ title, children }: { title: string; children: React.ReactNode }) {
+  const tr = useText();
   return (
     <div className="card p-6 text-center">
       <h1 className="text-lg font-semibold">{title}</h1>
       <p className="mt-2 text-sm text-muted">{children}</p>
       <p className="mt-4 text-xs text-muted">
-        Need help? <a href={`mailto:${SUPPORT_EMAIL}`} className="underline">{SUPPORT_EMAIL}</a>
+        {tr("Need help? ")}<a href={`mailto:${SUPPORT_EMAIL}`} className="underline">{SUPPORT_EMAIL}</a>
       </p>
     </div>
   );

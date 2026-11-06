@@ -26,6 +26,8 @@ CLAUDE.md
 Thumbs.db
 *.log
 npm-debug.log*
+test-results/
+playwright-report/
 
 # Video project: renders, caches and agent notes stay local
 video/renders/
@@ -39,3 +41,6 @@ video-portrait/.hyperframes/
 video-portrait/node_modules/
 video-portrait/.thumbnails/
 video-portrait/.waveform-cache/
+
+# Promo and update videos: renders and project files stay local
+videos/
