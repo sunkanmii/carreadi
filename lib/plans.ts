@@ -45,11 +45,14 @@ export function discounted(minor: number, currency: Currency, percent: number) {
   return Math.round((minor * (100 - percent)) / 100 / unit) * unit;
 }
 
-/** What a pass costs right now, promo included. The only price checkout ever uses. */
-export function priceOf(plan: PassId, currency: Currency, now = Date.now()) {
+/**
+ * What a pass costs right now. The only price checkout ever uses. A discount code and a running
+ * promo never add up: the buyer gets whichever is bigger.
+ */
+export function priceOf(plan: PassId, currency: Currency, now = Date.now(), codePercent = 0) {
   const base = PASSES[plan].price[currency];
-  const promo = activePromo(now);
-  return promo ? discounted(base, currency, promo.percent) : base;
+  const percent = Math.max(activePromo(now)?.percent ?? 0, codePercent);
+  return percent ? discounted(base, currency, percent) : base;
 }
 
 export function formatPrice(minor: number, currency: Currency, locale = "en") {

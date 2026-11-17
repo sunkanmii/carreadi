@@ -5,14 +5,23 @@ export interface CareerPath {
   titles: RegExp;
 }
 
+// Order matters for guessCareerPath: within one line, the first path whose titles match wins,
+// so narrow paths (mobile, full stack, data engineering, AI/ML, cloud) come before the broad ones.
 export const CAREER_PATHS: CareerPath[] = [
   { id: "software", label: "Software engineering", titles: /\b(software|full[- ]?stack|engineer|developer)\b/i },
+  { id: "mobile", label: "Mobile development", titles: /\b(mobile|ios|android|react native|flutter|kotlin|swift(ui)? developer)\b/i },
+  { id: "fullstack", label: "Full stack engineering", titles: /\bfull[- ]?stack\b/i },
   { id: "frontend", label: "Frontend engineering", titles: /\b(front[- ]?end|ui engineer|web engineer|react)\b/i },
   { id: "backend", label: "Backend engineering", titles: /\b(back[- ]?end|api|platform|server|distributed)\b/i },
+  { id: "qa", label: "QA / Test engineering", titles: /\b(qa|quality assurance|quality engineer|test (engineer|analyst|automation)|automation tester|software tester|(?<!pen(etration)? )tester|sdet)\b/i },
+  // Before data analytics, so "SOC Analyst" is security work.
+  { id: "security", label: "Security", titles: /\b(security|cyber\w*|appsec|detection|trust|penetration|pen ?tester|soc analyst|ethical hacker|threat)\b/i },
+  { id: "ai-ml", label: "AI / ML engineering", titles: /\b(machine learning engineer|ml engineer|mlops|ai engineer|ai\/ml|llm|applied scientist|computer vision|nlp engineer)/i },
   { id: "data-science", label: "Data science / ML", titles: /\b(data scien|machine learning|\bml\b|ai engineer|research (engineer|scientist))/i },
+  { id: "data-engineering", label: "Data engineering", titles: /\b(data engineer|analytics engineer|etl developer|data platform|big data)/i },
   { id: "data-analytics", label: "Data analytics", titles: /\b(analyst|analytics|business intelligence|\bbi\b)/i },
+  { id: "cloud", label: "Cloud engineering", titles: /\b(cloud (engineer|architect|developer|administrator|consultant|specialist)|(aws|azure|gcp) (engineer|architect|developer))\b/i },
   { id: "devops", label: "DevOps / SRE / Infra", titles: /\b(devops|sre|site reliability|infrastructure|cloud)\b/i },
-  { id: "security", label: "Security", titles: /\b(security|appsec|detection|trust)\b/i },
   { id: "product", label: "Product management", titles: /\b(product manager|product lead|\bpm\b|program manager)/i },
   { id: "design", label: "Design / UX", titles: /\b(designer|design|ux|ui|user research)/i },
   // \bwriter never matches "Underwriter".
@@ -32,6 +41,30 @@ export const CAREER_PATHS: CareerPath[] = [
   { id: "project", label: "Project management", titles: /\b(project manager|project coordinator|scrum master|delivery manager|pmo)\b/i },
   { id: "operations", label: "Operations", titles: /\b(operations|ops\b|business operations|chief of staff)/i },
 ];
+
+/**
+ * The tech paths "Which tech path fits me?" can suggest, with a short note on what each one does
+ * so the AI picks by the work, not just the title. Every id is a CAREER_PATHS id, so a suggestion
+ * filters live jobs with the same title rules as the career path dropdown.
+ */
+export const TECH_PATHS: Record<string, string> = {
+  frontend: "builds the parts of websites and web apps people see and click (HTML, CSS, JavaScript, React)",
+  backend: "builds servers, APIs and databases behind apps",
+  fullstack: "builds both the web front end and the server side of a product",
+  mobile: "builds iPhone and Android apps (Swift, Kotlin, React Native, Flutter)",
+  devops: "automates building, shipping and running software (CI/CD, Docker, Kubernetes, monitoring)",
+  cloud: "designs and runs systems on AWS, Azure or Google Cloud",
+  security: "protects systems and data (cyber security, SOC, penetration testing, security engineering)",
+  qa: "tests software by hand and with automated tests to catch bugs before users do",
+  "data-analytics": "turns data into answers and dashboards (Excel, SQL, Power BI, Tableau)",
+  "data-engineering": "builds the pipelines and warehouses that move and store data (SQL, Python, ETL, Spark, dbt)",
+  "data-science": "finds patterns and predicts outcomes with statistics and models",
+  "ai-ml": "builds and ships machine learning and AI features, including LLM apps",
+  design: "designs how products look and work (UX research, UI design, Figma, prototyping)",
+  product: "decides what a product team builds and why, and leads it to launch",
+  devrel: "explains technology through docs, tutorials, talks and community (technical writing, developer relations)",
+  software: "general software engineering when no narrower path fits",
+};
 
 export function careerById(id: string | null | undefined) {
   return CAREER_PATHS.find((c) => c.id === id) ?? null;

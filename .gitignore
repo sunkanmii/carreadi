@@ -16,8 +16,6 @@ tsconfig.tsbuildinfo
 *.local.md
 
 # AI assistant / editor settings and local tooling
-.claude/
-CLAUDE.md
 .vscode/
 .idea/
 
@@ -44,3 +42,6 @@ video-portrait/.waveform-cache/
 
 # Promo and update videos: renders and project files stay local
 videos/
+
+# Social posts: photos and renders stay local
+social/

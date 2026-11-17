@@ -63,14 +63,17 @@ function memoryLimit(key: string, limit: number, windowMs: number) {
   return e.n <= limit;
 }
 
+/** Requests a minute per network address when the limiter binding is unavailable; matches wrangler.jsonc. */
+const BURST_LIMIT = 600;
+
 /** Burst limit for every API route. Returns a 429 response when exceeded. */
 export async function rateLimit(req: Request): Promise<Response | null> {
   const key = clientIp(req);
   let ok = true;
   try {
-    ok = bindings.API_LIMITER ? (await bindings.API_LIMITER.limit({ key })).success : memoryLimit(key, 30, 60_000);
+    ok = bindings.API_LIMITER ? (await bindings.API_LIMITER.limit({ key })).success : memoryLimit(key, BURST_LIMIT, 60_000);
   } catch {
-    ok = memoryLimit(key, 30, 60_000);
+    ok = memoryLimit(key, BURST_LIMIT, 60_000);
   }
   return ok ? null : json({ error: "Too many requests. Please wait a minute." }, 429);
 }

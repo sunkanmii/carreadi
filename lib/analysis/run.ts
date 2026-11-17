@@ -17,10 +17,14 @@ Rules:
     language, or a location/time zone that excludes the candidate). "Remote, global" or "we hire anywhere" is NOT a restriction.
 - Include demonstrated requirements too, so the candidate sees their strengths.
 - evidence: exact résumé quote, or "" if none.
-- action: one concrete step. deliverable: something the candidate can SHOW an employer, specific to this job
-  (e.g. "Open a merged pull request to PostgREST", "Public repo: a C extension for Postgres with tests").
+- action: one concrete step that names exactly WHAT to build or do, in this job's domain and with the job's own tools
+  (e.g. "Build a ticket-routing dashboard in React and TypeScript that pulls issues from the GitHub API",
+  not "Develop a new product from the ground up"). Small enough to finish in the estimated hours.
+  deliverable: something the candidate can SHOW an employer, specific to this job
+  (e.g. "Open a merged pull request to PostgREST", "Public repo: a C extension for Postgres with tests and a README").
   Never "complete a tutorial" or "read the docs". Never targets the candidate can't control (stars, followers, downloads).
-- resource: a real, well-known free learning resource (official docs preferred) with its URL.
+- resource: a real, well-known free learning resource (official docs preferred) on this exact topic, with the URL of the
+  specific page (e.g. https://react.dev/learn/thinking-in-react), never a site's homepage.
 - priority: 1 = do first (required + missing), 2 = next, 3 = later.
 - estimatedHours: realistic hours for someone with this résumé to finish the action AND the deliverable
   (a small doc fix ≈ 3, a portfolio project ≈ 20–40, a new language to working level ≈ 80+). 0 if nothing to do.

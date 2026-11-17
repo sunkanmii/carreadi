@@ -8,6 +8,7 @@ import { PROVIDER_NAMES, type Provider } from "@/lib/types";
 import { safeHref } from "@/lib/url";
 import { getSession } from "@/lib/client/session";
 import { passStatus } from "@/lib/client/pass";
+import AdminCodes from "./AdminCodes";
 
 interface Req {
   id: number;
@@ -114,6 +115,7 @@ export default function AdminRequests() {
   return (
     <div className="space-y-8">
       {msg && <p className="rounded-xl bg-accent-soft px-4 py-3 text-sm text-accent">{tr(msg)}</p>}
+      <AdminCodes token={token} />
       <section>
         <h2 className="mb-3 text-sm font-semibold">{tr("Lost passes ({value0} open)", { value0: displayValue(data.support.filter((x) => x.status === "open").length) })}</h2>
         {!data.support.some((x) => x.status === "open") && <p className="text-sm text-muted">{tr("No one needs help.")}</p>}

@@ -1,4 +1,12 @@
-import type { Analysis } from "./analysis/schema";
+import type { Analysis, Finding } from "./analysis/schema";
+import type { Guide, Proof } from "./analysis/coach";
+
+/** Finished work the user shared for a step, as checked, with the CV text written from it. */
+export interface TaskProof extends Proof {
+  links: string[];
+  notes: string;
+  checkedAt: string;
+}
 
 export interface Task {
   id: string;
@@ -10,6 +18,12 @@ export interface Task {
   done: boolean;
   /** AI estimate in hours, editable by the user. Missing on roadmaps made before estimates existed. */
   hours?: number;
+  /** Why this step exists: how the job ranks the requirement and what the CV showed. */
+  status?: Finding["status"];
+  importance?: Finding["importance"];
+  /** How to do it well, written on request and kept with the step. */
+  guide?: Guide;
+  proof?: TaskProof;
 }
 
 /** Remaining hours on open tasks that have an estimate. */
@@ -42,7 +56,7 @@ export function buildRoadmap(a: Analysis, previous?: Roadmap | null): Roadmap {
   const tasks: Task[] = gaps.map((f, i) => {
     const old = prev.get(key(f.requirement));
     return old
-      ? { ...old, priority: f.priority, hours: old.hours ?? (f.estimatedHours || undefined) }
+      ? { ...old, priority: f.priority, hours: old.hours ?? (f.estimatedHours || undefined), status: f.status, importance: f.importance }
       : {
           id: `${Date.now().toString(36)}-${i}`,
           title: f.action,
@@ -52,6 +66,8 @@ export function buildRoadmap(a: Analysis, previous?: Roadmap | null): Roadmap {
           priority: f.priority,
           done: false,
           hours: f.estimatedHours || undefined,
+          status: f.status,
+          importance: f.importance,
         };
   });
   // Keep tasks the user added themselves.

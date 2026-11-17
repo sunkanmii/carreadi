@@ -11,10 +11,11 @@ for (const path of [...walk("app"), ...walk("components"), ...walk("lib"), ...wa
     if (ts.isPropertyAssignment(node) && ["label", "hint", "note"].includes(node.name.getText(file)) && ts.isStringLiteral(node.initializer)) record(node.initializer.text);
     if (path === "lib/recommend.ts" && ts.isStringLiteral(node) && node.text.includes(" ") && /[a-zA-Z]/.test(node.text)) record(node.text);
     if ((path.startsWith("app/api/") || path.startsWith("lib/analysis/")) && ts.isStringLiteral(node) && /[a-zA-Z]/.test(node.text) && node.text.includes(" ") && !/^(?:SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|https?:)/.test(node.text) && !/[<>{}]/.test(node.text)) record(node.text);
+    if (ts.isNewExpression(node) && node.expression.getText(file) === "JobLinkError" && node.arguments?.[0] && ts.isStringLiteral(node.arguments[0])) record(node.arguments[0].text);
     ts.forEachChild(node, visit);
   }; visit(file);
 }
-for (const [key, value] of Object.entries(english.ui)) if (!value.trim() || /^(?:use client$|Bearer |calc\(|flex |grid |card |size-|bg-|text-|border-|noopener |public, max-age=|analyze: unexpected error$|Model did not return JSON$|invalid JSON$|model error$|analysis failed:$)/.test(value)) delete english.ui[key];
+for (const [key, value] of Object.entries(english.ui)) if (!value.trim() || /^(?:use client$|Bearer |calc\(|flex |grid |card |size-|bg-|text-|border-|noopener |public, max-age=|analyze: unexpected error$|paths: unexpected error$|Model did not return JSON$|invalid JSON$|model error$|analysis failed:$|coach failed:$|paths failed:$|Mozilla)/.test(value)) delete english.ui[key];
 if (process.argv.includes("--extract")) {
   writeFileSync("messages/en.json", JSON.stringify(english, null, 2) + "\n");
   console.log(`${Object.keys(english.ui).length} source messages extracted.`);

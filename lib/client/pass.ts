@@ -70,17 +70,28 @@ export async function restore(reference: string) {
   return r.status;
 }
 
-export async function startCheckout(plan: PassId, email?: string) {
+export async function startCheckout(plan: PassId, email?: string, code?: string) {
   // The server charges in the visitor's local currency; nothing here can change it.
   const current = getPass();
-  const r = await api<{ url: string; reference: string; token: string }>(
+  const r = await api<{ url: string | null; reference: string; token: string }>(
     "/api/checkout",
-    postJson({ plan, email: email || undefined, passToken: current?.token }),
+    postJson({ plan, email: email || undefined, passToken: current?.token, code: code || undefined }),
   );
   // Keep the old pass alongside the new one, so nothing is lost if this checkout is abandoned.
   setPass({ token: r.token, reference: r.reference, previous: current ? { token: current.token, reference: current.reference } : undefined });
-  window.location.href = r.url;
+  // No link means a code made the pass free: it is already active, so go straight to it.
+  window.location.href = r.url ?? `/pass?reference=${r.reference}`;
 }
+
+export interface AppliedCode {
+  code: string;
+  percent: number;
+  /** The only pass it works for, or null for any. */
+  plan: PassId | null;
+}
+
+/** What a discount code is worth. Throws with the server's reason when it can't be used. */
+export const checkCode = (code: string) => api<AppliedCode>("/api/code", postJson({ code }));
 
 /** The currency the server will charge this visitor in (naira only in Nigeria). */
 export async function visitorCurrency(): Promise<Currency> {

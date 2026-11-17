@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ownerFor } from "@/lib/server/account";
+import { normalizeCode } from "@/lib/codes";
 import { createCheckout, passStatus } from "@/lib/server/payments";
 import { currencyFor } from "@/lib/server/geo";
 import { dailyLimit, json, rateLimit, readJson } from "@/lib/server/guard";
@@ -12,6 +13,8 @@ const Body = z.object({
   email: z.string().trim().max(254).email().optional().or(z.literal("")),
   // The pass this browser already holds, if any: no second purchase while it is active.
   passToken: z.string().max(100).optional(),
+  // A discount code. Checked here again, whatever the page showed.
+  code: z.string().max(40).optional(),
 });
 
 /** Starts a Bachs checkout. The price comes from our server-side plan table, never the browser. */
@@ -23,11 +26,18 @@ export async function POST(req: Request) {
   if (read instanceof Response) return read;
   const parsed = Body.safeParse(read.body);
   if (!parsed.success) return json({ error: parsed.error.issues.some((i) => i.path[0] === "email") ? "That email doesn't look right." : "Choose a pass and currency." }, 400);
-  if (!(await dailyLimit(req, "checkout", 30))) return json({ error: "Too many checkout attempts today. Try again tomorrow." }, 429);
+  const code = parsed.data.code?.trim() ? normalizeCode(parsed.data.code) : undefined;
+  if (code === null) return json({ error: "We don't recognise that code. Check it and try again." }, 400);
+  // Code holders get a roomier cap: a whole room at an event can share one network address.
+  if (!(await (code ? dailyLimit(req, "code", 400) : dailyLimit(req, "checkout", 30)))) return json({ error: "Too many checkout attempts today. Try again tomorrow." }, 429);
   if (parsed.data.passToken) {
     const current = await passStatus(parsed.data.passToken).catch(() => null);
     if (current?.active) return json({ error: "You already have an active pass. Buy a new one when it ends.", activePass: true }, 409);
   }
-  const r = await createCheckout(req, parsed.data.plan, currencyFor(req), parsed.data.email || undefined);
-  return "error" in r ? json({ error: r.error }, r.status) : json(r);
+  try {
+    const r = await createCheckout(req, parsed.data.plan, currencyFor(req), parsed.data.email || undefined, code);
+    return "error" in r ? json({ error: r.error }, r.status) : json(r);
+  } catch {
+    return json({ error: "We couldn't start your order. Nothing was charged. Please try again." }, 503);
+  }
 }

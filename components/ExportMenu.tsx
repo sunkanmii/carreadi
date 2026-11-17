@@ -5,16 +5,17 @@ import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { track } from "@/lib/client/analytics";
-import { copyChecklist, downloadDocx, downloadIcs, printReport, reportOf } from "@/lib/client/export";
+import { aiText, checklistText, copyChecklist, copyForAi, downloadDocx, downloadIcs, printReport, reportOf } from "@/lib/client/export";
 import type { Saved } from "@/lib/client/store";
 
-type Kind = "word" | "pdf" | "calendar" | "checklist";
+type Kind = "word" | "pdf" | "calendar" | "checklist" | "ai";
 
 const OPTIONS: { kind: Kind; label: string; hint: string }[] = [
   { kind: "word", label: "Word document", hint: "Report and to-do list for Word or Google Docs" },
   { kind: "pdf", label: "PDF", hint: "Print or save a clean report" },
   { kind: "calendar", label: "Add to calendar", hint: "Each step as a reminder, at your pace" },
   { kind: "checklist", label: "Copy as checklist", hint: "Paste into Notes, OneNote, Notion or WhatsApp" },
+  { kind: "ai", label: "Copy for AI chat", hint: "Your gaps and roadmap as Markdown, for ChatGPT, Gemini or any AI chat" },
 ];
 
 /** Exports of full results. Free previews see it locked, with the way to unlock it. */
@@ -22,6 +23,8 @@ export default function ExportMenu({ data }: { data: Saved }) {
   const tr = useText();
   const [open, setOpen] = useState(false);
   const [done, setDone] = useState("");
+  // Text to copy by hand when the browser blocks the clipboard.
+  const [manual, setManual] = useState("");
   const ref = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const locked = !!data.analysis?.preview;
@@ -41,8 +44,12 @@ export default function ExportMenu({ data }: { data: Saved }) {
       if (kind === "word") downloadDocx(r);
       if (kind === "pdf" && !printReport(r)) throw new Error("popup");
       if (kind === "calendar") downloadIcs(r);
-      if (kind === "checklist") await copyChecklist(r);
-      setDone(kind === "checklist" ? tr("Checklist copied ✓") : kind === "pdf" ? tr("Report opened. Choose “Save as PDF” ✓") : tr("Downloaded ✓"));
+      if ((kind === "checklist" && !(await copyChecklist(r))) || (kind === "ai" && !(await copyForAi(r)))) {
+        setManual(kind === "ai" ? aiText(r) : checklistText(r));
+        setOpen(false);
+        return;
+      }
+      setDone(kind === "ai" ? tr("Copied. Paste it into your AI chat ✓") : kind === "checklist" ? tr("Checklist copied ✓") : kind === "pdf" ? tr("Report opened. Choose “Save as PDF” ✓") : tr("Downloaded ✓"));
       track("results_exported", { kind });
     } catch {
       setDone(kind === "pdf" ? tr("Allow pop-ups for this site, then try again.") : tr("Couldn’t export. Please try again."));
@@ -80,6 +87,15 @@ export default function ExportMenu({ data }: { data: Saved }) {
                 ))}
               </ul>
             )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {manual && (
+          <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-2 w-80 max-w-[calc(100vw-2.5rem)] rounded-2xl border border-line bg-white p-3">
+            <p className="text-xs text-muted">{tr("This browser blocked copying. Select the text below and copy it.")}</p>
+            <textarea readOnly dir="auto" rows={8} className="field mt-2 font-mono text-xs" value={manual} aria-label={tr("Text to copy")} onFocus={(e) => e.currentTarget.select()} autoFocus />
+            <button className="btn-ghost mt-2 text-xs" onClick={() => setManual("")}>{tr("Close")}</button>
           </motion.div>
         )}
       </AnimatePresence>

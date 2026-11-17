@@ -41,3 +41,18 @@ describe("exports", () => {
     expect(text).toContain("→ Ship K8s");
   });
 });
+
+describe("copy for AI chat", async () => {
+  const { aiText } = await import("@/lib/client/export");
+  it("gives the essentials as Markdown, without the long guides", () => {
+    const withGuide = { ...report, roadmap: { ...report.roadmap, tasks: report.roadmap.tasks.map((t) => ({ ...t, guide: { why: "LONG GUIDE TEXT", steps: [], resources: [], avoid: [], showIt: "" } })) } };
+    const text = aiText(withGuide);
+    expect(text).toContain("# Career roadmap: Senior Writer · Acme & Co");
+    expect(text).toContain("## What my CV already shows");
+    expect(text).toContain('- SQL (CV: "Wrote <SQL> guides")');
+    expect(text).toContain("## Gaps");
+    expect(text).toContain("1. [ ] Do Go (~10 h)");
+    expect(text).toContain("   - Deliverable: Ship Go");
+    expect(text).not.toContain("LONG GUIDE TEXT");
+  });
+});

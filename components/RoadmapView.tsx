@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { remainingHours, type Roadmap, type Task } from "@/lib/roadmap";
 import { track } from "@/lib/client/analytics";
 import { safeHref } from "@/lib/url";
+import { CvUpdate, StepGuide, StepProof, StepWhy } from "./StepCoach";
 
 const spring = { type: "spring", stiffness: 380, damping: 30 } as const;
 const PACES = [3, 5, 10, 20, 40];
@@ -188,6 +189,7 @@ export default function RoadmapView({ roadmap, onChange, locale = "en" }: { road
                           </span>
                         </p>
                         <p className="mt-1 text-sm text-muted">{tr("→ {value0}", { value0: displayValue(t.deliverable) })}</p>
+                        <StepWhy task={t} />
                         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
                           {t.requirement !== "Custom" && <span>{tr("For: {value0}", { value0: displayValue(t.requirement) })}</span>}
                           {t.resource.url && (
@@ -195,6 +197,7 @@ export default function RoadmapView({ roadmap, onChange, locale = "en" }: { road
                           )}
                           <button className="underline underline-offset-2 hover:text-ink" onClick={() => setEditing(t.id)}>{tr("Edit")}</button>
                         </div>
+                        <StepGuide task={t} roleTitle={roadmap.roleTitle} onSave={(guide) => set(t.id, { guide })} />
                         <motion.button
                           whileTap={{ scale: 0.95 }}
                           onClick={() => toggle(t)}
@@ -204,6 +207,14 @@ export default function RoadmapView({ roadmap, onChange, locale = "en" }: { road
                         >
                           {t.done ? tr("Undo") : tr("✓ Mark as done")}
                         </motion.button>
+                        <StepProof
+                          task={t}
+                          roleTitle={roadmap.roleTitle}
+                          onSave={(proof, isDone) => {
+                            if (isDone && !t.done) { setBurst(t.id); setTimeout(() => setBurst(null), 700); }
+                            set(t.id, { proof, done: isDone });
+                          }}
+                        />
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -215,6 +226,7 @@ export default function RoadmapView({ roadmap, onChange, locale = "en" }: { road
       </div>
 
       <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="btn-ghost mt-4 ms-12" onClick={add}>{tr("+ Add task")}</motion.button>
+      <CvUpdate roadmap={roadmap} />
     </div>
   );
 }

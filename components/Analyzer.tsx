@@ -20,6 +20,7 @@ import type { Job, JobSummary, Provider } from "@/lib/types";
 import { track } from "@/lib/client/analytics";
 import { getPass } from "@/lib/client/pass";
 import AnalyzeProgress from "./AnalyzeProgress";
+import PathFit from "./PathFit";
 import SourcePicker, { useSources } from "./SourcePicker";
 
 type JobMode = "match" | "pick" | "paste";
@@ -28,6 +29,7 @@ export default function Analyzer() {
   const tr = useText();
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
+  const jobsRef = useRef<HTMLDivElement>(null);
   const [resume, setResume] = useState("");
   const [fileName, setFileName] = useState("");
   const [pasting, setPasting] = useState(false);
@@ -201,6 +203,7 @@ export default function Analyzer() {
               {tr("PDF, DOCX or TXT · up to 5 MB, about 4,500 words · read in your browser ·")}{" "}
               <button className="underline hover:text-ink" onClick={() => setPasting(true)}>{tr("paste text")}</button>
             </p>
+            <p id="tech-paths" className="mt-4 scroll-mt-20 text-sm text-muted text-pretty">{tr("Not sure which tech path fits you? Upload your CV and we’ll suggest the ones it already points to.")}</p>
           </div>
         )
       ) : (
@@ -215,9 +218,22 @@ export default function Analyzer() {
         </div>
       )}
 
+      {/* Not sure what to aim for? Tech paths that fit the CV, each leading to its live jobs below. */}
+      {resumeReady && !pasting && (
+        <PathFit
+          resume={resume}
+          onSeeJobs={(id) => {
+            setPrefs((p) => ({ ...p, careerPath: id }));
+            setMode("match");
+            setPicked(null);
+            jobsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+        />
+      )}
+
       {/* Step 2 — target job */}
       {resumeReady && !pasting && (
-        <div className="card space-y-4 p-4">
+        <div ref={jobsRef} className="card scroll-mt-20 space-y-4 p-4">
           <div className="flex gap-1 rounded-full bg-paper p-1 text-sm" role="tablist" aria-label={tr("Choose a target job")} onKeyDown={rovingKeys}>
             {(["match", "pick", "paste"] as const).map((m) => (
               <button
@@ -235,8 +251,9 @@ export default function Analyzer() {
             ))}
           </div>
 
-          <div role="tabpanel" id="job-panel" aria-labelledby={`job-tab-${mode}`} tabIndex={0}>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div role="tabpanel" id="job-panel" aria-labelledby={`job-tab-${mode}`} tabIndex={0} className="space-y-5">
+          {/* A pasted job is already chosen: only the career path still matters, for the roadmap. */}
+          <div className={`grid grid-cols-1 gap-3 ${mode === "paste" ? "" : "sm:grid-cols-3"}`}>
             <div>
               <label className="label" htmlFor="path">{tr("Career path")}</label>
               <select id="path" className="field" value={prefs.careerPath} onChange={(e) => setPrefs({ ...prefs, careerPath: e.target.value })}>
@@ -244,6 +261,7 @@ export default function Analyzer() {
                 {CAREER_PATHS.map((c) => <option key={c.id} value={c.id}>{tr(c.label)}</option>)}
               </select>
             </div>
+            {mode !== "paste" && <>
             <div>
               <label className="label" htmlFor="loc">{tr("Location")}</label>
               <input dir="auto" id="loc" className="field" placeholder={tr("e.g. United States")} value={prefs.location} onChange={(e) => setPrefs({ ...prefs, location: e.target.value })} />
@@ -257,6 +275,7 @@ export default function Analyzer() {
                 <option value="onsite">{tr("On-site")}</option>
               </select>
             </div>
+            </>}
           </div>
 
           {/* Filters come first: they shape the matched list below. */}
@@ -265,10 +284,7 @@ export default function Analyzer() {
           {mode === "match" ? (
             <MatchList resume={resume} prefs={prefs} sources={sources} picked={picked} onPick={setPicked} />
           ) : mode === "paste" ? (
-            <div>
-              <label htmlFor="job-text" className="sr-only">{tr("Job description")}</label>
-              <textarea dir="auto" id="job-text" rows={5} className="field resize-y" placeholder={tr("Paste a job description from anywhere")} value={jobText} onChange={(e) => setJobText(e.target.value)} />
-            </div>
+            <JobPaste value={jobText} onChange={setJobText} />
           ) : (
             <JobPicker sources={sources} picked={picked} onPick={setPicked} />
           )}
@@ -498,5 +514,105 @@ function Check() {
     <svg aria-hidden width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M5 12l5 5L20 7" />
     </svg>
+  );
+}
+
+type LinkedJob = { title: string; company: string; location: string; url: string; description: string };
+const LINK_RE = /^https?:\/\/\S+\.\S+$/i;
+
+/** A job from its link, or its pasted text: one or the other, each with its own box. */
+function JobPaste({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const tr = useText();
+  // Re-checking a pasted job from the history brings its text back, so start on the text box then.
+  const [kind, setKind] = useState<"link" | "text">(() => (value.trim() ? "text" : "link"));
+  const [url, setUrl] = useState("");
+  const [job, setJob] = useState<LinkedJob | null>(null);
+  const [state, setState] = useState<"idle" | "loading" | "error">("idle");
+  const [error, setError] = useState("");
+  const link = url.trim();
+  const isLink = LINK_RE.test(link);
+
+  useEffect(() => {
+    if (kind !== "link") return;
+    setJob(null);
+    onChange("");
+    setError("");
+    if (!isLink) { setState("idle"); return; }
+    let live = true;
+    setState("loading");
+    const t = setTimeout(() => {
+      // The host can drop a busy request with a 5xx; one quiet retry covers that.
+      const get = () => api<{ job: LinkedJob }>("/api/jobs/import", postJson({ url: link }));
+      get()
+        .catch((e) => new Promise((r) => setTimeout(r, 700)).then(() => (live ? get() : Promise.reject(e))))
+        .then(({ job }) => {
+          if (!live) return;
+          const head = [job.company ? `${job.title} at ${job.company}` : job.title, job.location && `Location: ${job.location}`, `Link: ${job.url}`];
+          setJob(job);
+          setState("idle");
+          onChange(`${head.filter(Boolean).join("\n")}\n\n${job.description}`);
+          track("job_link_imported", { host: new URL(job.url).hostname });
+        })
+        .catch((e) => {
+          if (!live) return;
+          setState("error");
+          setError(e instanceof Error ? e.message : tr("We couldn't read that link. Copy the job description and paste it instead."));
+        });
+    }, 400);
+    return () => { live = false; clearTimeout(t); };
+  }, [kind, isLink, link]);
+
+  function choose(next: "link" | "text") {
+    if (next === kind) return;
+    setKind(next);
+    setUrl("");
+    setJob(null);
+    setState("idle");
+    setError("");
+    onChange("");
+  }
+
+  return (
+    <div className="space-y-3 border-t border-line pt-5">
+      <p className="label">{tr("The job")}</p>
+      <div className="inline-flex rounded-full border border-line p-0.5 text-xs" role="radiogroup" aria-label={tr("How do you want to add the job?")}>
+        {(["link", "text"] as const).map((k) => (
+          <button key={k} type="button" role="radio" aria-checked={kind === k} onClick={() => choose(k)}
+            className={`rounded-full px-3 py-1 ${kind === k ? "bg-ink font-medium text-white" : "text-muted hover:text-ink"}`}>
+            {k === "link" ? tr("🔗 Job link") : tr("📝 Job text")}
+          </button>
+        ))}
+      </div>
+
+      {kind === "link" ? (
+        <div className="space-y-2">
+          <label htmlFor="job-link" className="sr-only">{tr("Job link")}</label>
+          <input id="job-link" type="url" inputMode="url" dir="ltr" spellCheck={false} autoCapitalize="none" autoComplete="off" className="field"
+            placeholder="https://…" value={url} onChange={(e) => setUrl(e.target.value)} />
+          {state === "loading" && (
+            <p role="status" className="flex items-center gap-2 text-xs text-muted"><Spinner />{tr("Getting the job details…")}</p>
+          )}
+          {state === "error" && (
+            <p role="alert" className="rounded-xl bg-bad-soft px-3 py-2 text-xs text-bad">
+              {error}{" "}
+              <button type="button" className="font-medium underline" onClick={() => choose("text")}>{tr("Paste the text instead")}</button>
+            </p>
+          )}
+          {job && state === "idle" && (
+            <div role="status" className="rounded-xl border border-accent/25 bg-accent-soft px-3 py-2.5 text-sm">
+              <p className="text-xs font-medium text-accent">{tr("✓ Job found")}</p>
+              <p className="mt-0.5 font-medium">{job.title}</p>
+              <p className="text-xs text-muted">{[job.company, job.location].filter(Boolean).join(" · ")}</p>
+            </div>
+          )}
+          {!link && <p className="text-xs text-muted">{tr("Paste the link to one job. Works with most company careers pages and job sites.")}</p>}
+        </div>
+      ) : (
+        <div>
+          <label htmlFor="job-text" className="sr-only">{tr("Job description")}</label>
+          <textarea dir="auto" id="job-text" rows={5} className="field resize-y" placeholder={tr("Paste a job description from anywhere")} value={value} onChange={(e) => onChange(e.target.value)} />
+        </div>
+      )}
+    </div>
   );
 }

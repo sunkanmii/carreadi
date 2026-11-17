@@ -7,7 +7,7 @@ import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 
 /** Shown only once the real count is big enough to mean something; small numbers would hurt trust. */
-const SHOW_FROM = 500;
+const SHOW_FROM = 100;
 
 export default function CheckedCounter() {
   const tr = useText();

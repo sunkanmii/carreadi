@@ -28,6 +28,7 @@
   "d1_databases": [{ "binding": "DB", "database_name": "carreadi-db", "database_id": "36ed9169-20d2-4c01-910b-c22c441430ee" }],
   // Shared job-board cache (public job data only).
   "kv_namespaces": [{ "binding": "JOBS_KV", "id": "f59e6ba9a45141f4902fb22f48775b8d" }],
-  // Burst limiter for every API route.
-  "ratelimits": [{ "name": "API_LIMITER", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } }]
+  // Burst limiter for every API route, per network address. Roomy enough for a whole room on one
+  // Wi-Fi (career day); costly actions have their own daily caps. Keep in step with BURST_LIMIT in lib/server/guard.ts.
+  "ratelimits": [{ "name": "API_LIMITER", "namespace_id": "1001", "simple": { "limit": 600, "period": 60 } }]
 }

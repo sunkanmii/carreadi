@@ -6,7 +6,7 @@ import { motion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { track } from "@/lib/client/analytics";
-import { daysLeft, passStatus, startCheckout, visitorPricing, type PassStatus, type Pricing } from "@/lib/client/pass";
+import { checkCode, daysLeft, passStatus, startCheckout, visitorPricing, type AppliedCode, type PassStatus, type Pricing } from "@/lib/client/pass";
 import { discounted, formatPrice, PASSES, type Currency, type PassId } from "@/lib/plans";
 import { useCountdown } from "./PromoBanner";
 import { Spinner } from "./Analyzer";
@@ -21,6 +21,39 @@ export default function BuyPass({ compact = false }: { compact?: boolean }) {
   const [promo, setPromo] = useState<Pricing["promo"]>(null);
   const left = useCountdown(promo?.endsAt);
   const onSale = !!promo && !!left && !left.over;
+  const [codeText, setCodeText] = useState("");
+  const [code, setCode] = useState<AppliedCode | null>(null);
+  const [codeBusy, setCodeBusy] = useState(false);
+  const [codeError, setCodeError] = useState("");
+  // The discount on one pass: the code (if it covers that pass) or the promo, whichever is bigger.
+  const promoPercent = onSale ? promo!.percent : 0;
+  const codeFor = (plan: PassId) => (code && (!code.plan || code.plan === plan) ? code.percent : 0);
+  const percentFor = (plan: PassId) => Math.max(promoPercent, codeFor(plan));
+
+  async function applyCode(text = codeText) {
+    if (!text.trim()) return;
+    setCodeBusy(true);
+    setCodeError("");
+    try {
+      const c = await checkCode(text);
+      setCode(c);
+      setCodeText(c.code);
+      track("code_applied", { percent: c.percent });
+    } catch (e) {
+      setCode(null);
+      setCodeError(e instanceof Error ? e.message : tr("Couldn't check that code right now. Try again in a moment."));
+    }
+    setCodeBusy(false);
+  }
+
+  useEffect(() => {
+    // A link or QR code can carry the code: /plans?code=CAREERDAY
+    const fromLink = new URLSearchParams(window.location.search).get("code");
+    if (fromLink) {
+      setCodeText(fromLink);
+      void applyCode(fromLink);
+    }
+  }, []);
   useEffect(() => {
     visitorPricing().then((p) => {
       setCurrency(p.currency);
@@ -34,7 +67,8 @@ export default function BuyPass({ compact = false }: { compact?: boolean }) {
     setError("");
     track("checkout_started", { plan, currency, with_email: !!email });
     try {
-      await startCheckout(plan, email.trim());
+      // Only send the code when it lowers this pass's price; otherwise it would be refused.
+      await startCheckout(plan, email.trim(), codeFor(plan) > promoPercent ? code!.code : undefined);
     } catch (e) {
       setError(e instanceof Error ? e.message : tr("Couldn't open checkout."));
       setBusy(null);
@@ -75,10 +109,33 @@ export default function BuyPass({ compact = false }: { compact?: boolean }) {
         <input dir="auto" id="pass-email" type="email" autoComplete="email" maxLength={254} className="ph-mask field text-center" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
         <p className="mt-1.5 text-center text-xs text-muted">{tr("If you clear your browser, this is how we find your pass. Never shown publicly or used for marketing.")}</p>
       </div>
+      <form className="mx-auto mb-4 max-w-sm" onSubmit={(e) => { e.preventDefault(); void applyCode(); }}>
+        <label htmlFor="pass-code" className="label text-center">{tr("Discount code (optional)")}</label>
+        <div className="flex gap-2">
+          <input
+            dir="ltr" id="pass-code" autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={30}
+            className="field text-center uppercase tracking-wider" value={codeText}
+            onChange={(e) => { setCodeText(e.target.value); setCode(null); setCodeError(""); }}
+          />
+          <button className="btn-ghost shrink-0" disabled={codeBusy || !codeText.trim() || !!code}>
+            {codeBusy && <Spinner />}
+            {code ? tr("Applied ✓") : tr("Apply")}
+          </button>
+        </div>
+        {code && (
+          <p role="status" className="mt-1.5 text-center text-xs font-medium text-accent">
+            {code.percent >= 100 ? tr("This code makes your pass free. Nothing to pay.") : tr("{percent}% off with this code.", { percent: code.percent })}
+            {code.plan ? " " + tr("It works for the {plan} only.", { plan: tr(PASSES[code.plan].name) }) : ""}
+          </p>
+        )}
+        {codeError && <p role="alert" className="mt-1.5 text-center text-xs text-bad">{codeError}</p>}
+      </form>
       <div className="grid gap-3 sm:grid-cols-2">
         {(["day", "week"] as const).map((id, i) => {
           const p = PASSES[id];
           const best = id === "week";
+          const percent = percentFor(id);
+          const free = percent >= 100;
           return (
             <motion.div
               key={id}
@@ -89,19 +146,19 @@ export default function BuyPass({ compact = false }: { compact?: boolean }) {
             >
               {best && <span className="absolute -top-2.5 start-5 rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium text-white">{tr("Best value")}</span>}
               <p className="text-sm font-medium">{tr(p.name)}</p>
-              {onSale && currency && (
+              {percent > 0 && currency && (
                 <p className="mt-1 flex items-center gap-2 text-sm">
                   <s className="text-muted">{formatPrice(p.price[currency], currency, clientLocale())}</s>
-                  <span className="rounded-full bg-bad-soft px-2 py-0.5 text-[11px] font-semibold text-bad">{tr("-{percent}%", { percent: promo!.percent })}</span>
+                  <span className="rounded-full bg-bad-soft px-2 py-0.5 text-[11px] font-semibold text-bad">{tr("-{percent}%", { percent })}</span>
                 </p>
               )}
               <p className="mt-1 text-2xl font-semibold tracking-tight">
                 {currency ? (
-                  formatPrice(onSale ? discounted(p.price[currency], currency, promo!.percent) : p.price[currency], currency, clientLocale())
+                  free ? tr("Free") : formatPrice(percent ? discounted(p.price[currency], currency, percent) : p.price[currency], currency, clientLocale())
                 ) : (
                   <span className="inline-block h-7 w-24 animate-pulse rounded bg-paper align-middle" />
                 )}
-                <span className="text-sm font-normal text-muted">{p.days === 1 ? tr(" / day") : tr(" / week")}</span>
+                <span className="text-sm font-normal text-muted">{free ? "" : p.days === 1 ? tr(" / day") : tr(" / week")}</span>
               </p>
               {!compact && (
                 <ul className="mt-3 flex-1 space-y-1.5 text-sm text-muted">
@@ -110,7 +167,7 @@ export default function BuyPass({ compact = false }: { compact?: boolean }) {
               )}
               <button className={`mt-4 w-full ${best ? "btn" : "btn-ghost"}`} disabled={!!busy || !currency} onClick={() => buy(id)}>
                 {busy === id && <Spinner />}
-                {busy === id ? tr("Opening checkout…") : tr("Get {value0}", { value0: displayValue(tr(p.name)) })}
+                {busy === id ? (free ? tr("Starting your pass…") : tr("Opening checkout…")) : free ? tr("Get {value0} free", { value0: displayValue(tr(p.name)) }) : tr("Get {value0}", { value0: displayValue(tr(p.name)) })}
               </button>
             </motion.div>
           );

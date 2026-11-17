@@ -70,9 +70,75 @@ export function checklistText(r: Report) {
   return lines.join("\n");
 }
 
-export async function copyChecklist(r: Report) {
-  await navigator.clipboard.writeText(checklistText(r));
+/**
+ * Copies text. Some browsers (in-app browsers, locked-down pages) block the clipboard API, so this falls
+ * back to the older copy command. Returns false when both are blocked; the caller then shows the text.
+ */
+export async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const area = Object.assign(document.createElement("textarea"), { value: text, readOnly: true });
+    area.style.cssText = "position:fixed;top:0;left:0;opacity:0";
+    document.body.appendChild(area);
+    area.select();
+    let ok = false;
+    try {
+      ok = document.execCommand("copy");
+    } catch {}
+    area.remove();
+    return ok;
+  }
 }
+
+export const copyChecklist = (r: Report) => copyText(checklistText(r));
+
+const WHY_STATUS: Record<Finding["status"], string> = {
+  demonstrated: "shown in my CV",
+  not_shown: "my CV shows related work, not this",
+  missing: "not in my CV",
+  uncertain: "unclear from my CV",
+  eligibility: "possible eligibility limit",
+};
+
+/**
+ * The essentials as Markdown for pasting into an AI chat: the role, what the CV shows, the gaps and the
+ * roadmap with progress. Leaves out the long how-to guides; the AI can expand any step itself.
+ */
+export function aiText(r: Report) {
+  const out = [
+    `# Career roadmap: ${r.title}`,
+    `Context from Carreadi (${SITE}): a check of my CV against one job, and my roadmap to close the gaps. Use it to help me.`,
+    `Date: ${r.date}${r.link ? ` · Job: ${r.link}` : ""}`,
+  ];
+  if (r.summary) out.push("", "## Summary", r.summary);
+  if (r.proven.length) {
+    out.push("", "## What my CV already shows");
+    for (const f of r.proven) out.push(`- ${f.requirement}${f.evidence ? ` (CV: "${f.evidence}")` : ""}`);
+  }
+  if (r.gaps.length) {
+    out.push("", "## Gaps");
+    for (const f of r.gaps) out.push(`- ${f.requirement} [${IMPORTANCE[f.importance].toLowerCase()}; ${WHY_STATUS[f.status]}]`);
+  }
+  const tasks = r.roadmap.tasks;
+  const done = tasks.filter((t) => t.done).length;
+  out.push("", `## Roadmap (${done} of ${tasks.length} done${r.roadmap.pace ? `, ${r.roadmap.pace} h/week` : ""})`);
+  tasks.forEach((t, i) => {
+    out.push(`${i + 1}. [${t.done ? "x" : " "}] ${t.title}${t.hours ? ` (~${t.hours} h)` : ""}`);
+    if (t.requirement && t.requirement !== "Custom") out.push(`   - Closes: ${t.requirement}${t.importance ? ` (${IMPORTANCE[t.importance].toLowerCase()})` : ""}`);
+    if (t.deliverable) out.push(`   - Deliverable: ${t.deliverable}`);
+    if (t.resource?.url) out.push(`   - Resource: ${t.resource.name} ${t.resource.url}`);
+    if (t.proof) {
+      const verdict = { meets: "meets the requirement", partly: "almost there", not_yet: "not shown yet" }[t.proof.verdict];
+      out.push(`   - My work: ${t.proof.links.join(", ")} (checked: ${verdict})`);
+      for (const s of t.proof.improve) out.push(`     - To improve: ${s}`);
+    }
+  });
+  return out.join("\n");
+}
+
+export const copyForAi = (r: Report) => copyText(aiText(r));
 
 // ---- Word (.docx): a minimal, valid document built by hand and zipped with fflate ----
 
@@ -210,4 +276,62 @@ export function calendarText(r: Report, now = new Date()) {
 
 export function downloadIcs(r: Report) {
   download(fileName(r, "ics"), calendarText(r), "text/calendar");
+}
+
+// ---- CV with checked projects added (.docx) ----
+
+export interface CvProject { name: string; line: string; bullets: string[]; link: string }
+export type CvBlock = { kind: "name" | "heading" | "text" | "bullet" | "project" | "gap"; text: string; added?: boolean };
+
+const PROJECTS_HEADING = /^(?:personal |side |selected |key |academic )?projects?\s*:?$/i;
+const LATER_HEADING = /^(?:education|certifications?|licen[cs]es|awards|languages|references|interests|hobbies)\s*:?$/i;
+const isHeading = (l: string) => PROJECTS_HEADING.test(l) || LATER_HEADING.test(l) || (/^[\p{Lu}\d &/,'-]{3,40}$/u.test(l) && /\p{Lu}{3}/u.test(l));
+
+/**
+ * The CV as blocks, with the projects placed where a reader expects them: at the top of an existing
+ * Projects section, or in a new one before Education, or at the end. The CV's own text is never changed.
+ */
+export function cvBlocks(resume: string, projects: CvProject[]): CvBlock[] {
+  const lines = resume.replace(/\r/g, "").split("\n").map((l) => l.trim());
+  const firstText = lines.findIndex(Boolean);
+  const blocks: CvBlock[] = lines.map((l, i) =>
+    !l ? { kind: "gap", text: "" } : i === firstText ? { kind: "name", text: l } : /^[•\-*–▪●]\s+/.test(l) ? { kind: "bullet", text: l.replace(/^[•\-*–▪●]\s+/, "") } : isHeading(l) ? { kind: "heading", text: l } : { kind: "text", text: l },
+  );
+  const added: CvBlock[] = projects.flatMap((p) => [
+    { kind: "project", text: `${p.name}${p.link ? ` | ${p.link}` : ""}`, added: true },
+    ...(p.line ? [{ kind: "text", text: p.line, added: true } as CvBlock] : []),
+    ...p.bullets.map((b) => ({ kind: "bullet", text: b, added: true }) as CvBlock),
+  ]);
+  const existing = blocks.findIndex((b) => b.kind === "heading" && PROJECTS_HEADING.test(b.text));
+  if (existing >= 0) return [...blocks.slice(0, existing + 1), ...added, ...blocks.slice(existing + 1)];
+  const section: CvBlock[] = [{ kind: "heading", text: "PROJECTS", added: true }, ...added, { kind: "gap", text: "" }];
+  const later = blocks.findIndex((b) => b.kind === "heading" && LATER_HEADING.test(b.text));
+  return later >= 0 ? [...blocks.slice(0, later), ...section, ...blocks.slice(later)] : [...blocks, { kind: "gap", text: "" }, ...section];
+}
+
+function docxPackage(bodyXml: string): Uint8Array {
+  const document = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${bodyXml}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="0" w:footer="0" w:gutter="0"/></w:sectPr></w:body></w:document>`;
+  return zipSync({
+    "[Content_Types].xml": strToU8(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`),
+    "_rels/.rels": strToU8(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`),
+    "word/document.xml": strToU8(document),
+  });
+}
+
+export function cvDocxBytes(resume: string, projects: CvProject[]): Uint8Array {
+  const body = cvBlocks(resume, projects).map((b) => {
+    switch (b.kind) {
+      case "name": return para([{ text: b.text, bold: true, size: 18 }], { after: 4 });
+      case "heading": return para([{ text: b.text.toUpperCase(), bold: true, size: 12, color: "1F5F4A" }], { before: 10, after: 4 });
+      case "project": return para([{ text: b.text, bold: true }], { before: 6, after: 2 });
+      case "bullet": return para([{ text: `•  ${b.text}` }], { indent: 18, after: 2 });
+      case "gap": return "";
+      default: return para([{ text: b.text }], { after: 3 });
+    }
+  });
+  return docxPackage(body.join(""));
+}
+
+export function downloadCv(resume: string, projects: CvProject[]) {
+  download("CV - with projects.docx", cvDocxBytes(resume, projects) as BlobPart, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
 }

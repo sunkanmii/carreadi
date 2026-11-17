@@ -2,7 +2,9 @@
 // only its SHA-256 hash. A payment counts only after we confirm it with Bachs ourselves
 // (webhook or lookup), never because the browser says so.
 import { env } from "cloudflare:workers";
-import { PASSES, priceOf, type Currency, type PassId } from "../plans";
+import { activePromo, PASSES, priceOf, type Currency, type PassId } from "../plans";
+import { CODE_MESSAGES, codeProblem, type DiscountCode } from "../codes";
+import { CODE_SCHEMA, findCode, releaseCode, reserveCode } from "./codes";
 import {
   bachsEnv,
   bachsRequest,
@@ -36,6 +38,8 @@ export interface Order {
   expires_at: number | null;
   analyses_used: number;
   analyses_limit: number;
+  /** The discount code this order used, if any. */
+  code?: string | null;
 }
 
 // Every public address of the site. Checkout returns the buyer to the address they started on,
@@ -71,11 +75,14 @@ export async function ensurePaymentSchema(db: D1Database) {
     db.prepare(
       "CREATE TABLE IF NOT EXISTS support_requests (id INTEGER PRIMARY KEY AUTOINCREMENT, created_at INTEGER NOT NULL, email TEXT NOT NULL, email_hash TEXT NOT NULL, note TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'open')",
     ),
+    db.prepare(CODE_SCHEMA),
   ]);
-  // Added after launch: older databases get the column here. "duplicate column" means it exists.
-  try {
-    await db.prepare("ALTER TABLE orders ADD COLUMN email_hash TEXT").run();
-  } catch {}
+  // Added after launch: older databases get the columns here. "duplicate column" means it exists.
+  for (const column of ["email_hash TEXT", "code TEXT"]) {
+    try {
+      await db.prepare(`ALTER TABLE orders ADD COLUMN ${column}`).run();
+    } catch {}
+  }
   await db.prepare("CREATE INDEX IF NOT EXISTS orders_email ON orders(email_hash)").run();
   ready = true;
 }
@@ -109,6 +116,14 @@ async function db() {
   await ensurePaymentSchema(d);
   return d;
 }
+export { db as paymentDb };
+
+/** Marks an unpaid order failed and hands its discount code use back, exactly once. */
+async function failOrder(reference: string, from: "initializing" | "pending") {
+  const d = await db();
+  const row = await d.prepare("UPDATE orders SET status = 'failed' WHERE reference = ? AND status = ? RETURNING code").bind(reference, from).first<{ code: string | null }>();
+  if (row?.code) await releaseCode(d, row.code);
+}
 
 const byReference = async (reference: string) => (await db()).prepare("SELECT * FROM orders WHERE reference = ?").bind(reference).first<Order>();
 
@@ -121,25 +136,59 @@ export function publicOrigin(req: Request) {
   return SITE_ORIGINS.includes(here) ? here : null;
 }
 
-export type CheckoutResult = { url: string; reference: string; token: string } | { error: string; status: number };
+/** `url` is null when a 100% code made the pass free: it is already active, with nothing to pay. */
+export type CheckoutResult = { url: string | null; reference: string; token: string } | { error: string; status: number };
 
-export async function createCheckout(req: Request, plan: PassId, currency: Currency, email?: string): Promise<CheckoutResult> {
-  const mode = paymentMode();
-  if (mode === "disabled") return { error: "Payments open very soon. Nothing was charged.", status: 503 };
-  const origin = publicOrigin(req);
-  if (!origin) return { error: "Checkout only works on the live site. Nothing was charged.", status: 503 };
+/** A code that can be used for this pass right now, or the reason it can't. Takes no use. */
+export async function usableCode(code: string, plan?: PassId): Promise<DiscountCode | { error: string }> {
+  const c = await findCode(await db(), code);
+  const problem = codeProblem(c, plan);
+  return problem ? { error: CODE_MESSAGES[problem] } : c!;
+}
+
+export async function createCheckout(req: Request, plan: PassId, currency: Currency, email?: string, code?: string): Promise<CheckoutResult> {
+  const d = await db();
   const pass = PASSES[plan];
-  // Promo included; the order keeps this amount, and payment is only accepted if it matches.
-  const amount = priceOf(plan, currency);
+  let applied: DiscountCode | null = null;
+  if (code) {
+    const c = await usableCode(code, plan);
+    if ("error" in c) return { error: c.error, status: 400 };
+    // A running promo that is at least as good wins, and the code keeps its use.
+    if (c.percent > (activePromo()?.percent ?? 0)) applied = c;
+  }
+  // Promo and code included; the order keeps this amount, and payment is only accepted if it matches.
+  const amount = priceOf(plan, currency, Date.now(), applied?.percent ?? 0);
+  const mode = paymentMode();
+  const origin = publicOrigin(req);
+  if (amount > 0) {
+    if (mode === "disabled") return { error: "Payments open very soon. Nothing was charged.", status: 503 };
+    if (!origin) return { error: "Checkout only works on the live site. Nothing was charged.", status: 503 };
+  }
+  // The use is taken before anything else happens, so a limited code can never be over-used.
+  if (applied && !(await reserveCode(d, applied.code))) return { error: CODE_MESSAGES.used_up, status: 400 };
   const reference = `carreadi-${crypto.randomUUID()}`;
   const token = newToken();
-  const d = await db();
-  await d
-    .prepare(
-      "INSERT INTO orders (reference, plan, currency, amount, status, mode, created_at, token_hash, analyses_limit, email_hash) VALUES (?, ?, ?, ?, 'initializing', ?, ?, ?, ?, ?)",
-    )
-    .bind(reference, plan, currency, amount, mode, Date.now(), await hashToken(token), pass.analyses, email ? await hashEmail(email) : null)
-    .run();
+  const now = Date.now();
+  const free = amount === 0;
+  try {
+    await d
+      .prepare(
+        `INSERT INTO orders (reference, plan, currency, amount, status, mode, created_at, token_hash, analyses_limit, email_hash, code, paid_at, expires_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .bind(
+        reference, plan, currency, amount,
+        // Nothing to pay: the pass starts now and Bachs is never involved ("code" is not a payment mode).
+        free ? "paid" : "initializing", free ? "code" : mode,
+        now, await hashToken(token), pass.analyses, email ? await hashEmail(email) : null, applied?.code ?? null,
+        free ? now : null, free ? now + pass.days * 864e5 : null,
+      )
+      .run();
+  } catch (e) {
+    if (applied) await releaseCode(d, applied.code);
+    throw e;
+  }
+  if (free) return { url: null, reference, token };
 
   try {
     const session = await bachsRequest<BachsSession>("/v1/checkout-sessions", {
@@ -169,7 +218,7 @@ export async function createCheckout(req: Request, plan: PassId, currency: Curre
     return { url, reference, token };
   } catch (e) {
     console.error("bachs_checkout_failed", reference, String((e as Error)?.message ?? e).slice(0, 120));
-    await d.prepare("UPDATE orders SET status = 'failed' WHERE reference = ? AND status = 'initializing'").bind(reference).run();
+    await failOrder(reference, "initializing");
     return { error: "We couldn't open the payment page. Nothing was charged. Please try again.", status: 502 };
   }
 }
@@ -215,7 +264,7 @@ export async function reconcile(o: Order): Promise<Order["status"]> {
       return "paid";
   }
   if ((s.status === "expired" || s.status === "cancelled") && !["succeeded", "accepted", "partially_refunded"].includes(c?.status ?? "")) {
-    await (await db()).prepare("UPDATE orders SET status = 'failed' WHERE reference = ? AND status = 'pending'").bind(o.reference).run();
+    await failOrder(o.reference, "pending");
     return "failed";
   }
   return o.status;
