@@ -41,9 +41,13 @@ export default function SourcePicker({ value, onChange }: { value: Provider[]; o
 
   return (
     <div className="text-xs">
-      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="flex items-center gap-1.5 text-muted hover:text-ink">
+      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open}
+        className="flex w-full items-center justify-between gap-3 rounded-xl border border-muted bg-white px-3.5 py-2.5 text-start text-muted transition hover:border-ink hover:bg-paper">
         <span>{tr("Job sources: ")}<b className="font-medium text-ink">{summary}</b></span>
-        <motion.span animate={{ rotate: open ? 180 : 0 }} aria-hidden>▾</motion.span>
+        <span className="flex shrink-0 items-center gap-1.5 font-medium text-accent">
+          {open ? tr("Hide") : tr("Change")}
+          <motion.svg animate={{ rotate: open ? 180 : 0 }} aria-hidden width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></motion.svg>
+        </span>
       </button>
       <AnimatePresence initial={false}>
         {open && (

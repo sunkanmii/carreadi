@@ -5,6 +5,12 @@ import { codeProblem, type DiscountCode } from "@/lib/codes";
 import { PASSES, type PassId } from "@/lib/plans";
 import { useText } from "@/lib/useText";
 
+/** A timestamp as the "YYYY-MM-DDTHH:mm" local time a datetime-local input wants. */
+function localInput(ms: number) {
+  const d = new Date(ms - new Date(ms).getTimezoneOffset() * 60_000);
+  return d.toISOString().slice(0, 16);
+}
+
 /** Admin: make discount codes, see how often each was used, and switch them off. */
 export default function AdminCodes({ token }: { token: string }) {
   const tr = useText();
@@ -13,7 +19,7 @@ export default function AdminCodes({ token }: { token: string }) {
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState("");
-  const [form, setForm] = useState({ percent: "100", count: "1", code: "", plan: "", maxUses: "1", validDays: "7", note: "" });
+  const [form, setForm] = useState({ percent: "100", count: "1", code: "", plan: "", maxUses: "1", endsAt: localInput(Date.now() + 7 * 864e5), note: "" });
   const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const call = useCallback(
@@ -51,7 +57,7 @@ export default function AdminCodes({ token }: { token: string }) {
         code: many ? undefined : form.code.trim() || undefined,
         plan: form.plan || null,
         maxUses: form.maxUses ? Number(form.maxUses) : null,
-        validDays: form.validDays ? Number(form.validDays) : null,
+        expiresAt: form.endsAt ? new Date(form.endsAt).getTime() : null,
         note: form.note,
       });
       setMade((r.codes ?? []) as string[]);
@@ -102,8 +108,23 @@ export default function AdminCodes({ token }: { token: string }) {
           <input id="dc-uses" type="number" min={1} max={100000} className="field" value={form.maxUses} onChange={set("maxUses")} placeholder={tr("No limit")} />
         </div>
         <div>
-          <label className="label" htmlFor="dc-days">{tr("Stops working after (days)")}</label>
-          <input id="dc-days" type="number" min={1} max={366} className="field" value={form.validDays} onChange={set("validDays")} placeholder={tr("Never")} />
+          <label className="label" htmlFor="dc-ends">{tr("Stops working on")}</label>
+          <input id="dc-ends" type="datetime-local" min={localInput(Date.now())} max={localInput(Date.now() + 366 * 864e5)} className="field" value={form.endsAt} onChange={set("endsAt")} />
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
+            {[1, 3, 7, 30].map((d) => (
+              <button key={d} type="button" onClick={() => setForm((f) => ({ ...f, endsAt: localInput(Date.now() + d * 864e5) }))}
+                className="rounded-full border border-line bg-white px-2.5 py-1 hover:border-ink/40 hover:bg-paper">
+                {d === 1 ? tr("+1 day") : tr("+{count} days", { count: d })}
+              </button>
+            ))}
+            <button type="button" onClick={() => setForm((f) => ({ ...f, endsAt: "" }))}
+              className={`rounded-full border px-2.5 py-1 hover:border-ink/40 hover:bg-paper ${form.endsAt ? "border-line bg-white" : "border-accent bg-accent-soft text-accent"}`}>
+              {tr("Never")}
+            </button>
+          </div>
+          <p className="mt-1 text-xs text-muted">
+            {form.endsAt ? tr("Ends {date}", { date: new Date(form.endsAt).toLocaleString(clientLocale(), { dateStyle: "medium", timeStyle: "short" }) }) : tr("No end date.")}
+          </p>
         </div>
         <div>
           <label className="label" htmlFor="dc-code">{tr("Your own code (optional)")}</label>
@@ -135,7 +156,7 @@ export default function AdminCodes({ token }: { token: string }) {
               <span className="text-xs">
                 · {c.percent >= 100 ? tr("Free") : tr("-{percent}%", { percent: c.percent })} · {c.plan ? tr(PASSES[c.plan].name) : tr("Any pass")} ·{" "}
                 {c.max_uses == null ? tr("Used {used}", { used: c.used }) : tr("Used {used} of {max}", { used: c.used, max: c.max_uses })}
-                {c.expires_at ? " · " + tr("until {date}", { date: new Date(c.expires_at).toLocaleDateString(clientLocale()) }) : ""} · {state(c)}
+                {c.expires_at ? " · " + tr("until {date}", { date: new Date(c.expires_at).toLocaleString(clientLocale(), { dateStyle: "medium", timeStyle: "short" }) }) : ""} · {state(c)}
                 {c.note ? ` · ${c.note}` : ""}
               </span>
             </span>

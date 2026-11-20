@@ -5,11 +5,13 @@ import { fetchBoard } from "@/lib/jobs/providers";
 import { ensureSchema, getDb } from "@/lib/server/db";
 import { dailyLimit, json, rateLimit, readJson } from "@/lib/server/guard";
 import { httpUrl } from "@/lib/url";
+import { requireHuman } from "@/lib/server/turnstile";
 
 const Body = z.object({
   company: z.string().trim().min(2, "Add the company name.").max(100),
   url: z.string().trim().max(500),
   note: z.string().trim().max(500).optional().default(""),
+  turnstile: z.string().max(2048).optional(),
 });
 
 /**
@@ -23,6 +25,8 @@ export async function POST(req: Request) {
   if (read instanceof Response) return read;
   const parsed = Body.safeParse(read.body);
   if (!parsed.success) return json({ error: parsed.error.issues[0]?.message ?? "Invalid request." }, 400);
+  const notHuman = await requireHuman(req, parsed.data.turnstile, "request");
+  if (notHuman) return notHuman;
   const url = httpUrl(parsed.data.url);
   if (!url) return json({ error: "Add a link that starts with https://" }, 400);
 

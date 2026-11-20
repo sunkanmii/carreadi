@@ -54,6 +54,10 @@ html[dir="rtl"] .tracking-tight { letter-spacing: normal; }
 input, textarea { min-inline-size: 0; }
 input[type="email"], input[type="url"], code { direction: ltr; unicode-bidi: isolate; }
 button, select, summary { min-block-size: 24px; }
+/* Anything you can press shows a pointer; underlined links and buttons thicken on hover. */
+button:not(:disabled), [role="tab"], [role="radio"], select, summary, a[href], label:has(input[type="checkbox"]), input[type="checkbox"], input[type="file"] { cursor: pointer; }
+a.underline:hover, button.underline:hover { text-decoration-thickness: 2px; }
+.btn-ghost:hover { background: var(--color-paper); }
 .btn, .btn-ghost { min-block-size: 44px; }
 .skip-link { position: fixed; inset-block-start: 8px; inset-inline-start: 8px; z-index: 100; padding: 12px 16px; background: var(--color-ink); color: white; border-radius: 8px; transform: translateY(-200%); }
 .skip-link:focus { transform: none; }

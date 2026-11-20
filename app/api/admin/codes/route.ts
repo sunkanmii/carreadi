@@ -25,7 +25,9 @@ const Action = z.discriminatedUnion("action", [
     plan: z.enum(["day", "week"]).nullable(),
     maxUses: z.number().int().min(1).max(100_000).nullable(),
     // Days from now until the codes stop working.
-    validDays: z.number().int().min(1).max(366).nullable(),
+    validDays: z.number().int().min(1).max(366).nullable().optional(),
+    // Or an exact moment (ms since epoch), which wins over validDays.
+    expiresAt: z.number().int().nullable().optional(),
     note: z.string().trim().max(100),
   }),
   z.object({ action: z.literal("set_active"), code: z.string().max(40), active: z.boolean() }),
@@ -45,6 +47,9 @@ export async function POST(req: Request) {
       await setCodeActive(d, normalizeCode(a.code) ?? "", a.active);
       return json({ ok: true });
     }
+    if (a.expiresAt != null && (a.expiresAt <= Date.now() || a.expiresAt > Date.now() + 366 * 864e5)) {
+      return json({ error: "Pick an end date in the future, within a year." }, 400);
+    }
     const chosen = a.code?.trim();
     if (chosen && (a.count !== 1 || !normalizeCode(chosen))) return json({ error: "A code you choose needs 4 to 24 letters, numbers or dashes, and is made one at a time." }, 400);
     const codes = await createCodes(d, {
@@ -54,7 +59,7 @@ export async function POST(req: Request) {
       prefix: a.prefix || undefined,
       plan: a.plan,
       maxUses: a.maxUses,
-      expiresAt: a.validDays ? Date.now() + a.validDays * 864e5 : null,
+      expiresAt: a.expiresAt ?? (a.validDays ? Date.now() + a.validDays * 864e5 : null),
       note: a.note,
     });
     return codes ? json({ codes }) : json({ error: "That code already exists. Choose another." }, 409);

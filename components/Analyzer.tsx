@@ -46,6 +46,10 @@ export default function Analyzer() {
   const [reconnecting, setReconnecting] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  // Re-checking the same job with a new résumé: ask for the upload first, keep the old one as a fallback.
+  const [rechecking, setRechecking] = useState(false);
+  const [savedResume, setSavedResume] = useState("");
+  const [recheckTitle, setRecheckTitle] = useState("");
 
   // Restore the last résumé (kept only in this browser) and a job passed via ?job=.
   useEffect(() => {
@@ -57,12 +61,19 @@ export default function Analyzer() {
     if (s.prefs) setPrefs(s.prefs);
     else if (s.resumeText) setPrefs((p) => ({ ...p, careerPath: guessCareerPath(s.resumeText!) }));
     const params = new URLSearchParams(window.location.search);
-    // Re-checking a pasted job from the history: bring the job text back.
+    // Re-checking: bring the same job back and ask for the updated résumé.
+    if (params.has("recheck") && s.resumeText) {
+      setRechecking(true);
+      setSavedResume(s.resumeText);
+      setRecheckTitle(s.job?.title ?? "");
+      setResume("");
+      setFileName("");
+    }
     if (params.has("recheck") && s.jobText && !s.jobId) {
       setMode("paste");
       setJobText(s.jobText);
     }
-    const id = params.get("job");
+    const id = params.get("job") ?? (params.has("recheck") ? s.jobId : null);
     if (id) {
       setMode("pick");
       api<{ job: Job }>(`/api/jobs/${encodeURIComponent(id)}`)
@@ -84,8 +95,10 @@ export default function Analyzer() {
       setPasting(false);
       // A new résumé gets a fresh guess; the user can change it in the dropdown.
       setPrefs((p) => ({ ...p, careerPath: guessCareerPath(text, file.name) || p.careerPath }));
-      setPicked(null);
-      setMode("match");
+      if (!rechecking) {
+        setPicked(null);
+        setMode("match");
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : tr("Couldn't read that file."));
     } finally {
@@ -156,6 +169,16 @@ export default function Analyzer() {
 
   return (
     <div className="mt-10 w-full max-w-xl space-y-3">
+      {rechecking && !resumeReady && !pasting && (
+        <div className="rounded-xl bg-accent-soft px-4 py-3 text-sm">
+          <p className="font-medium text-accent">{tr("Re-check with your updated résumé")}</p>
+          <p className="mt-0.5 text-muted">
+            {recheckTitle
+              ? tr("Upload your new résumé and we’ll scan it again for {value0}.", { value0: displayValue(recheckTitle) })
+              : tr("Upload your new résumé and we’ll scan it again for the same job.")}
+          </p>
+        </div>
+      )}
       {/* Step 1 — résumé */}
       {!resumeReady || pasting ? (
         pasting ? (
@@ -203,6 +226,11 @@ export default function Analyzer() {
               {tr("PDF, DOCX or TXT · up to 5 MB, about 4,500 words · read in your browser ·")}{" "}
               <button className="underline hover:text-ink" onClick={() => setPasting(true)}>{tr("paste text")}</button>
             </p>
+            {rechecking && savedResume && (
+              <button className="mt-3 text-xs text-muted underline hover:text-ink" onClick={() => { setResume(savedResume); setFileName(tr("Saved résumé")); }}>
+                {tr("Keep my saved résumé")}
+              </button>
+            )}
             <p id="tech-paths" className="mt-4 scroll-mt-20 text-sm text-muted text-pretty">{tr("Not sure which tech path fits you? Upload your CV and we’ll suggest the ones it already points to.")}</p>
           </div>
         )

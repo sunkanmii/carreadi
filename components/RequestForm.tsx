@@ -6,6 +6,7 @@ import { useState } from "react";
 import { track } from "@/lib/client/analytics";
 import { api, postJson } from "@/lib/client/http";
 import { Spinner } from "./Analyzer";
+import { useTurnstile } from "./Turnstile";
 
 export default function RequestForm() {
   const tr = useText();
@@ -13,18 +14,20 @@ export default function RequestForm() {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState("");
   const [error, setError] = useState("");
+  const human = useTurnstile("request");
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError("");
     try {
-      const r = await api<{ status: string; message: string }>("/api/requests", postJson(f));
+      const r = await api<{ status: string; message: string }>("/api/requests", postJson({ ...f, turnstile: human.token }));
       track("job_requested", { status: r.status });
       setDone(r.message);
     } catch (err) {
       setError(err instanceof Error ? err.message : tr("Couldn't send that. Try again."));
     } finally {
+      human.reset();
       setBusy(false);
     }
   }
@@ -53,7 +56,8 @@ export default function RequestForm() {
             <p className="mt-1.5 text-xs text-muted">{tr("Please don’t include personal details.")}</p>
           </div>
           {error && <p role="alert" className="rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">{tr(error)}</p>}
-          <button className="btn w-full" disabled={busy}>
+          {human.widget}
+          <button className="btn w-full" disabled={busy || !human.ready}>
             {busy && <Spinner />}
             {busy ? tr("Checking the link…") : tr("Send request")}
           </button>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Analytics from "@/components/Analytics";
+import Feedback from "@/components/Feedback";
 import MobileNav from "@/components/MobileNav";
 import PassBadge from "@/components/PassBadge";
 import PromoBanner from "@/components/PromoBanner";
@@ -89,6 +90,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           <Link href="/request" className="hover:text-ink">{t("Request a company")}</Link>
           <Link href="/terms" className="hover:text-ink">{t("Terms")}</Link>
           <Link href="/privacy" className="hover:text-ink">{t("Privacy & data")}</Link>
+          <Feedback />
           <a href={`mailto:${SUPPORT_EMAIL}`} className="hover:text-ink">{t("Contact")}</a>
         </footer>
         </MotionConfig>

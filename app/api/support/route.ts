@@ -1,10 +1,12 @@
 import { z } from "zod";
 import { createSupportRequest } from "@/lib/server/payments";
 import { dailyLimit, json, rateLimit, readJson } from "@/lib/server/guard";
+import { requireHuman } from "@/lib/server/turnstile";
 
 const Body = z.object({
   email: z.string().trim().max(254).email("Add the email you can be reached at."),
   note: z.string().trim().max(500).optional().default(""),
+  turnstile: z.string().max(2048).optional(),
 });
 
 /** "I lost my pass": stores the contact email for the admin, who looks up the pass and replies. */
@@ -15,6 +17,8 @@ export async function POST(req: Request) {
   if (read instanceof Response) return read;
   const parsed = Body.safeParse(read.body);
   if (!parsed.success) return json({ error: parsed.error.issues[0]?.message ?? "Invalid request." }, 400);
+  const notHuman = await requireHuman(req, parsed.data.turnstile, "support");
+  if (notHuman) return notHuman;
   if (!(await dailyLimit(req, "support", 3))) return json({ error: "You've already sent a few requests today. We'll be in touch." }, 429);
   try {
     await createSupportRequest(parsed.data.email, parsed.data.note);

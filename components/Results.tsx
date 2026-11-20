@@ -90,7 +90,7 @@ export default function Results() {
         </AnimatePresence>
 
         <motion.div {...rise} transition={{ ...spring, delay: 0.2 }} className="mt-6 flex flex-wrap items-start gap-2">
-          <Link href="/" className="btn-ghost">{tr("Re-check with updated résumé")}</Link>
+          <Link href="/?recheck=1" className="btn-ghost">{tr("Re-check with updated résumé")}</Link>
           <ExportMenu data={data} />
           {data.job?.applyUrl && (
             <a href={safeHref(data.job.applyUrl)} target="_blank" rel="noopener noreferrer" className="btn-ghost" onClick={() => track("application_opened", { from: "results" })}>{tr("Open application ↗")}</a>

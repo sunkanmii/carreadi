@@ -33,6 +33,19 @@ export async function ensureSchema(db: D1Database) {
         PRIMARY KEY (provider, token)
       )`,
     ),
+    db.prepare(
+      `CREATE TABLE IF NOT EXISTS feedback (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        created_at INTEGER NOT NULL,
+        kind TEXT NOT NULL,
+        rating INTEGER,
+        message TEXT NOT NULL DEFAULT '',
+        email TEXT NOT NULL DEFAULT '',
+        page TEXT NOT NULL DEFAULT '',
+        locale TEXT NOT NULL DEFAULT '',
+        status TEXT NOT NULL DEFAULT 'new'
+      )`,
+    ),
   ]);
   ready = true;
 }

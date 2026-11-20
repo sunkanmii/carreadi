@@ -6,6 +6,7 @@ import { daysLeft, getPass, passStatus, restore, type PassStatus } from "@/lib/c
 import { PASSES } from "@/lib/plans";
 import { api, postJson } from "@/lib/client/http";
 import { SUPPORT_EMAIL } from "@/lib/contact";
+import { useTurnstile } from "./Turnstile";
 
 /** Shows the active pass (with its restore code) or lets someone restore a pass bought elsewhere. */
 export default function PassManager() {
@@ -15,6 +16,7 @@ export default function PassManager() {
   const [msg, setMsg] = useState("");
   const [open, setOpen] = useState<"" | "code" | "email">("");
   const [email, setEmail] = useState("");
+  const human = useTurnstile("support");
 
   useEffect(() => {
     passStatus().then(setStatus).catch(() => setStatus({ active: false }));
@@ -24,11 +26,13 @@ export default function PassManager() {
     e.preventDefault();
     setMsg("");
     try {
-      const r = await api<{ message: string }>("/api/support", postJson({ email: email.trim() }));
+      const r = await api<{ message: string }>("/api/support", postJson({ email: email.trim(), turnstile: human.token }));
       setMsg(r.message);
       setOpen("");
     } catch (err) {
       setMsg(err instanceof Error ? err.message : tr("Couldn't send that."));
+    } finally {
+      human.reset();
     }
   }
 
@@ -70,8 +74,9 @@ export default function PassManager() {
           <div className="flex gap-2">
             <label htmlFor="lost-email" className="sr-only">{tr("Email")}</label>
             <input dir="auto" id="lost-email" type="email" required maxLength={254} className="ph-mask field py-2 text-xs" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-            <button className="btn-ghost shrink-0">{tr("Send")}</button>
+            <button className="btn-ghost shrink-0" disabled={!human.ready}>{tr("Send")}</button>
           </div>
+          <div className="mt-2 flex justify-center">{human.widget}</div>
         </form>
       )}
       {open === "code" && (
